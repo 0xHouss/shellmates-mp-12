@@ -1,35 +1,41 @@
 {
-  "name": "shellmates-mp-12",
-  "version": "1.0.0",
-  "description": "A meeting manager bot for the mini project of Shellmates Club",
-  "main": "build/index.js",
-  "scripts": {
-    "start": "pnpm build && node build/index.js",
-    "build": "rimraf ./build && tsc",
-    "dev": "nodemon src/index.ts"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/0xHouss/shellmates-mp-12"
-  },
-  "keywords": [],
-  "author": "Team 29",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/OxHouss/shellmates-mp-12/issues"
-  },
-  "homepage": "https://github.com/OxHouss/shellmates-mp-12#README",
-  "devDependencies": {
-    "@types/node": "^22.10.2",
-    "nodemon": "^3.1.4",
-    "rimraf": "^6.0.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.6.2"
-  },
-  "dependencies": {
-    "discord.js": "^14.16.2",
-    "googleapis": "105",
-    "mongodb": "^6.12.0",
-    "zod": "^3.23.8"
-  }
+    "name": "shellmates-mp-12",
+    "version": "1.0.0",
+    "description": "A meeting manager bot for the mini project of Shellmates Club",
+    "main": "build/index.js",
+    "scripts": {
+        "start": "pnpm build && node build/index.js",
+        "build": "rimraf ./build && tsc",
+        "dev": "nodemon src/index.ts"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/0xHouss/shellmates-mp-12"
+    },
+    "keywords": [],
+    "author": "Team 29",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/OxHouss/shellmates-mp-12/issues"
+    },
+    "homepage": "https://github.com/OxHouss/shellmates-mp-12#README",
+    "devDependencies": {
+        "@types/mongoose": "^5.11.96",
+        "@types/ms": "^0.7.34",
+        "@types/node": "^22.10.2",
+        "nodemon": "^3.1.4",
+        "rimraf": "^6.0.1",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.7.3"
+    },
+    "dependencies": {
+        "discord.js": "^14.16.2",
+        "dotenv": "^16.4.7",
+        "googleapis": "105",
+        "moment-timezone": "^0.5.47",
+        "mongodb": "^6.12.0",
+        "mongoose": "^8.9.5",
+        "ms": "^2.1.3",
+        "zod": "^3.23.8"
+    }
 }

@@ -10,6 +10,4 @@ const configSchema = z.object({
     GOOGLE_CALENDAR_ID: z.string(),
 })
 
-const config = configSchema.parse(configFile)
-
-export default config
+export default configSchema.parse(configFile);

@@ -10,7 +10,6 @@ const auth = new google.auth.GoogleAuth({
     scopes: ['https://www.googleapis.com/auth/calendar'],
 });
 
-
 export async function getEvents(params: Omit<calendar_v3.Params$Resource$Events$List, 'auth' | 'calendarId'>) {
     const response = await calendar.events.list({
         auth,

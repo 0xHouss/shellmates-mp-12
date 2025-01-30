@@ -1,23 +1,23 @@
-import { Db, MongoClient } from 'mongodb';
+import { MongoClient } from 'mongodb';
+import mongoose, { Mongoose } from 'mongoose';
 import config from './config';
 
 const client = new MongoClient(config.MONGODB_URI);
 
-export let db: Db;
+export let db: Mongoose;
 
 export async function connectToDatabase(dbName: string) {
-    if (!db) {
-        try {
-            await client.connect();
-            console.log('Connected to MongoDB !');
-            db = client.db(dbName);
-        } catch (err) {
-            console.error('Failed to connect to MongoDB !', err);
-            throw err;
-        }
-    }
+    if (db) return db;
 
-    return db;
+    try {
+        db = await mongoose.connect(config.MONGODB_URI, { dbName })
+
+        await client.connect();
+        console.log('Connected to MongoDB !');
+    } catch (err) {
+        console.error('Failed to connect to MongoDB !', err);
+        throw err;
+    }
 }
 
 export async function closeDatabaseConnection() {
