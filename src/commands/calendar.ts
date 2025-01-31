@@ -1,20 +1,21 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import Reminder from "../schemas/reminder";
+import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import { Event } from "../models/Event";
 
-export default {
-    data: new SlashCommandBuilder()
-        .setName("calendar")
-        .setDescription("View all upcoming events"),
-    async execute(interaction: ChatInputCommandInteraction) {
-        const events = await Reminder.find().sort({ date: 1 });
+export const data = new SlashCommandBuilder()
+    .setName("calendar")
+    .setDescription("View all upcoming events");
 
-        if (!events.length)
-            return await interaction.reply("No upcoming events.");
+export async function execute(interaction: ChatInputCommandInteraction) {
+    const events = await Event.find().sort({ date: 1 });
 
-        const eventList = events.map(event =>
-            `**${event.title}**\n📅 ${event.date ? event.date.toUTCString() : "Unknown Date"}\n🆔 ${event._id}\n${event.description || "No description"}`
-        ).join("\n\n");
-
-        await interaction.reply(eventList);
+    if (events.length === 0) {
+        await interaction.reply("No upcoming events.");
+        return;
     }
-};
+
+    const eventList = events.map(event => 
+        `**${event.title}**\n📅 ${event.date ? event.date.toUTCString() : "Unknown Date"}\n🆔 ${event._id}\n${event.description || "No description"}`
+    ).join("\n\n");
+    
+    await interaction.reply(eventList);
+}
