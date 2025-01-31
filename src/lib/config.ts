@@ -8,6 +8,7 @@ const configSchema = z.object({
     CLIENT_ID: z.string(),
     MONGODB_URI: z.string(),
     GOOGLE_CALENDAR_ID: z.string(),
+    DB_NAME: z.string(), 
 })
 
 export default configSchema.parse(configFile);

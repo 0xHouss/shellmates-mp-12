@@ -1,6 +1,7 @@
 import { Message } from "discord.js";
 import Reminder, { ReminderType } from "../schemas/reminder";
 import { parseDateTime } from "../lib/utils";
+import handleReminder from '../lib/reminderHandler';
 
 export default async function scheduleCommand(message: Message) {
     if (message.author.bot) return;
@@ -91,6 +92,10 @@ async function insertReminder(
     try {
         const newReminder = new Reminder(reminderData);
         await newReminder.save();
+
+
+         // Schedule the reminder immediately
+         await handleReminder(message.client, newReminder);
 
         let confirmationMessage = `
     🎉 **Meeting Scheduled Successfully!**

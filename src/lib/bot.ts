@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import config from './config';
 import { connectToDatabase } from './db';
+import { processPendingReminders } from './reminderHandler'; 
 
 export default class Bot {
     public commands = new Collection<string, any>();
@@ -14,18 +15,22 @@ export default class Bot {
 
         this.client.on('warn', console.log);
         this.client.on('error', console.error);
+
         this.client.once("ready", async () => {
             console.log(`Logged in as ${client.user!.tag} !`);
 
-            await connectToDatabase("shellmeets");
+            await connectToDatabase(); // Ensure DB is connected
             await this.importEvents();
             await this.importSlashCommands();
             await this.registerCommand();
-        })
+
+            //  Process pending reminders when the bot starts
+            await processPendingReminders(this.client);
+        });
     }
 
     private async importEvents() {
-        const eventsDir = path.join(__dirname, '../events')
+        const eventsDir = path.join(__dirname, '../events');
 
         const eventFiles = await fs.readdir(eventsDir);
         eventFiles.filter(file => !file.endsWith('.map'));
@@ -48,7 +53,7 @@ export default class Bot {
     }
 
     private async importSlashCommands() {
-        const commandsDir = path.join(__dirname, '../commands')
+        const commandsDir = path.join(__dirname, '../commands');
 
         const commandFiles = await fs.readdir(commandsDir);
         commandFiles.filter(file => !file.endsWith('.map'));
@@ -73,11 +78,11 @@ export default class Bot {
             await rest.put(
                 Routes.applicationCommands(config.CLIENT_ID),
                 { body: this.commandsArray }
-            )
+            );
 
-            console.log('Successfully registered application commands !')
+            console.log('Successfully registered application commands !');
         } catch (error) {
-            console.error(error)
+            console.error(error);
         }
     }
 }
