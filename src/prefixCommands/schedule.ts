@@ -1,5 +1,4 @@
 import { Message } from "discord.js";
-import { ObjectId } from "mongodb";
 import { reminderHandler } from "..";
 import { parseDateTime } from "../lib/utils";
 import Event from "../schemas/event";

@@ -1,4 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { ObjectId } from 'mongodb';
 import EventModal from "../schemas/event";
 
 export default {
@@ -11,15 +12,27 @@ export default {
                 .setRequired(true)
         ),
     async execute(interaction: ChatInputCommandInteraction) {
-        const eventId = interaction.options.getString("id");
+        const eventId = interaction.options.getString("id")!;
 
-        const deletedEvent = await EventModal.findByIdAndDelete(eventId);
-
-        if (!deletedEvent) {
-            await interaction.reply("Event not found.");
+        // Validate if the provided ID is a valid MongoDB ObjectId
+        if (!ObjectId.isValid(eventId)) {
+            await interaction.reply({ content: "❌ Invalid event ID format. Please provide a valid ID.", ephemeral: true });
             return;
         }
 
-        await interaction.reply(`Event **${deletedEvent.title}** has been canceled.`);
+        try {
+            const deletedEvent = await EventModal.findByIdAndDelete(eventId);
+
+            if (!deletedEvent) {
+                await interaction.reply({ content: "⚠️ Event not found. Please check the ID and try again.", ephemeral: true });
+                return;
+            }
+
+            await interaction.reply({ content: `✅ Event **"${deletedEvent.title}"** has been canceled.`, ephemeral: false });
+
+        } catch (error) {
+            console.error("Error deleting event:", error);
+            await interaction.reply({ content: "❌ An error occurred while canceling the event. Please try again later.", ephemeral: true });
+        }
     }
 };
