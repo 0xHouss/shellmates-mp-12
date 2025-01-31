@@ -29,7 +29,7 @@
         "typescript": "^5.7.3"
     },
     "dependencies": {
-        "discord.js": "^14.16.2",
+        "discord.js": "^14.17.3",
         "dotenv": "^16.4.7",
         "googleapis": "105",
         "moment-timezone": "^0.5.47",

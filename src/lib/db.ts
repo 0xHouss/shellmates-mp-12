@@ -6,7 +6,7 @@ const client = new MongoClient(config.MONGODB_URI);
 
 export let db: Mongoose;
 
-export async function connectToDatabase(dbName: string) {
+export   async function connectToDatabase(dbName: string) {
     if (db) return db;
 
     try {
