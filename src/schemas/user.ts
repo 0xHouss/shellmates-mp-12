@@ -1,21 +1,13 @@
-import mongoose, { Document } from "mongoose";
-
-export interface IUser extends Document {
-    id: string,
-    timezone?: Date,
-    createdAt: Date,
-    email: string,
-    score: number,
-};
+import mongoose, { Document, InferSchemaType } from "mongoose";
 
 const UserSchema = new mongoose.Schema({
-    id: String,
-    timezone: { type: String, require: false, default: null },
-    createdAt: Date,
+    timezone: String,
+    createdAt: { type: Date, default: Date.now },
     email: String,
-    score: Number,
 });
 
-export default mongoose.model<IUser>("User", UserSchema);
+export type IUser = Document & InferSchemaType<typeof UserSchema>;
 
+const UserModal = mongoose.model<IUser>("User", UserSchema);
+export default UserModal;
 

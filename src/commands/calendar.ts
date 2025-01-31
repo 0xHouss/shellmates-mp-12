@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import Reminder from "../schemas/reminder";
+import Reminder from "../schemas/event";
 
 export default {
     data: new SlashCommandBuilder()
@@ -12,7 +12,7 @@ export default {
             return await interaction.reply("No upcoming events.");
 
         const eventList = events.map(event =>
-            `**${event.title}**\n📅 ${event.date ? event.date.toUTCString() : "Unknown Date"}\n🆔 ${event._id}\n${event.description || "No description"}`
+            `**${event.title}**\n📅 ${event.datetime ? event.datetime.toUTCString() : "Unknown Date"}\n🆔 ${event._id}\n${event.description || "No description"}`
         ).join("\n\n");
 
         await interaction.reply(eventList);

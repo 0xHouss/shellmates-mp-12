@@ -1,9 +1,9 @@
 import { Client, Collection, REST, Routes } from 'discord.js';
 import fs from 'fs/promises';
 import path from 'path';
+import { reminderHandler } from '..';
 import config from './config';
 import { connectToDatabase } from './db';
-import { processPendingReminders } from './reminderHandler'; 
 
 export default class Bot {
     public commands = new Collection<string, any>();
@@ -22,10 +22,8 @@ export default class Bot {
             await connectToDatabase(); // Ensure DB is connected
             await this.importEvents();
             await this.importSlashCommands();
-            await this.registerCommand();
-
-            //  Process pending reminders when the bot starts
-            await processPendingReminders(this.client);
+            await this.registerCommands();
+            reminderHandler.initReminders();
         });
     }
 
@@ -71,7 +69,7 @@ export default class Bot {
         }
     }
 
-    private async registerCommand() {
+    private async registerCommands() {
         const rest = new REST({ version: '9' }).setToken(config.TOKEN);
 
         try {

@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import Reminder from "../schemas/reminder";
+import EventModal from "../schemas/event";
 
 export default {
     data: new SlashCommandBuilder()
@@ -13,7 +13,7 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         const eventId = interaction.options.getString("id");
 
-        const deletedEvent = await Reminder.findByIdAndDelete(eventId);
+        const deletedEvent = await EventModal.findByIdAndDelete(eventId);
 
         if (!deletedEvent) {
             await interaction.reply("Event not found.");

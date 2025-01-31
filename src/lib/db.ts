@@ -10,7 +10,6 @@ export async function connectToDatabase() {
     if (db) return db;
 
     try {
-       
         db = await mongoose.connect(config.MONGODB_URI, { dbName: config.DB_NAME });
 
         await client.connect();

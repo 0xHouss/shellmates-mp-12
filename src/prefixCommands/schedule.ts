@@ -1,7 +1,8 @@
 import { Message } from "discord.js";
-import Reminder, { ReminderType } from "../schemas/reminder";
+import { ObjectId } from "mongodb";
+import { reminderHandler } from "..";
 import { parseDateTime } from "../lib/utils";
-import handleReminder from '../lib/reminderHandler';
+import Event from "../schemas/event";
 
 export default async function scheduleCommand(message: Message) {
     if (message.author.bot) return;
@@ -76,26 +77,19 @@ async function insertReminder(
 ) {
     const { title, dateTime, rolename, description, meetLink } = scheduleData;
 
-    const reminderData = {
-        userId: message.author.id,
-        title,
-        date: dateTime,
-        type: "Meet" as ReminderType,
-        description: description || "",
-        leadTimeMs: null,
-        channelId: message.channel.id,
-        timezone: "UTC",
-        createdAt: new Date(),
-        meetLink: meetLink,
-    };
-
     try {
-        const newReminder = new Reminder(reminderData);
-        await newReminder.save();
+        const newEvent = new Event({
+            userId: message.author.id,
+            title,
+            datetime: dateTime,
+            description,
+            leadTimeMs: 10 * 60 * 1000,
+            channelId: message.channel.id,
+            meetLink,
+        });
 
-
-         // Schedule the reminder immediately
-         await handleReminder(message.client, newReminder);
+        const res = await newEvent.save();
+        reminderHandler.handle(res);
 
         let confirmationMessage = `
     🎉 **Meeting Scheduled Successfully!**

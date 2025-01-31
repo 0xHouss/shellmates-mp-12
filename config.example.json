@@ -3,5 +3,5 @@
     "CLIENT_ID": "your client id here",
     "MONGODB_URI": "your mongodb uri here",
     "GOOGLE_CALENDAR_ID": "your google calendar id here",
-     "DB_NAME":"your db name here"
+    "DB_NAME": "your db name here"
 }
