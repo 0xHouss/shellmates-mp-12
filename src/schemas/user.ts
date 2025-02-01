@@ -1,6 +1,7 @@
 import mongoose, { Document, InferSchemaType } from "mongoose";
 
 const UserSchema = new mongoose.Schema({
+    userId: { type: String, required: true, unique: true },
     timezone: String,
     createdAt: { type: Date, default: Date.now },
     email: String,
