@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { reminderHandler } from '..';
 import { createEvent } from '../lib/google-calendar';
 import EventModal from '../schemas/event';
+import UserModal from '../schemas/user';
 
 function parseTime(input: string) {
     const now = new Date();
@@ -146,6 +147,8 @@ export default {
                     return interaction.editReply(`Invalid lead time format. Please use 'X [unit]', 'X [unit]s' format."`);
             }
 
+            const user = await UserModal.findOne({ userId: interaction.user.id });
+
             const eventModal = new EventModal({
                 userId: interaction.user.id,
                 title,
@@ -164,6 +167,7 @@ export default {
                     dateTime: datetime.toISOString(),
                     timeZone: 'GMT'
                 },
+                attendees: [{ email: user?.email }],
                 end: {
                     dateTime: new Date(datetime.getTime() + 60 * 60 * 1000).toISOString(),
                     timeZone: 'GMT'
