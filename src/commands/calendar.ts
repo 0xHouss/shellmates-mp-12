@@ -1,16 +1,21 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import Reminder from '../schemas/event';
+import EventModal from '../schemas/event';
 
 export default {
     data: new SlashCommandBuilder()
         .setName('calendar')
         .setDescription('View all upcoming events'),
     async execute(interaction: ChatInputCommandInteraction) {
-        const events = await Reminder.find({ datetime: { $gte: new Date() } }).sort({ datetime: 1 });
+        const events = await EventModal.find({
+            datetime: {
+                $gte: new Date(),
+            },
+            status: "Pending"
+        }).sort({ datetime: 1 });
 
         if (!events.length) {
             const embed = new EmbedBuilder()
-                .setTitle('No upcoming events')
+                .setTitle('No upcoming events !')
                 .setDescription('There are no upcoming events scheduled.')
                 .setColor('Orange');
 
@@ -23,8 +28,8 @@ export default {
 
         events.forEach(event => embed.addFields(
             {
-                name: `**${event.title}**`,
-                value: `📅 ${event.datetime ? event.datetime.toUTCString() : 'Unknown Date'}\n🆔 ${event._id}\n${event.description || 'No description'}`,
+                name: `**📌 ${event.title}**`,
+                value: `📅 ${event.datetime.toUTCString()}\n🆔 ${event._id}\n${event.description || 'No description'}`,
                 inline: false
             }));
 

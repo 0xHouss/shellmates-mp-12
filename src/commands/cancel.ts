@@ -1,5 +1,6 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { ObjectId } from 'mongodb';
+import { googleCalendar } from '..';
 import EventModal from "../schemas/event";
 
 export default {
@@ -25,9 +26,9 @@ export default {
         }
 
         try {
-            const deletedEvent = await EventModal.findByIdAndDelete(eventId);
+            const canceledEvent = await EventModal.findByIdAndUpdate(eventId, { status: "Canceled" });
 
-            if (!deletedEvent) {
+            if (!canceledEvent) {
                 const embed = new EmbedBuilder()
                     .setTitle("Event not found !")
                     .setDescription("No event was found with the provided ID.")
@@ -36,9 +37,12 @@ export default {
                 return await interaction.reply({ embeds: [embed], ephemeral: true });
             }
 
+            // Remove event from google calendar
+            await googleCalendar.removeEvent(canceledEvent.calendarEventId);
+
             const embed = new EmbedBuilder()
                 .setTitle("Event canceled !")
-                .setDescription(`The event **${deletedEvent.title}** has been successfully canceled.`)
+                .setDescription(`The event **${canceledEvent.title}** has been successfully canceled.`)
                 .setColor("Green");
 
             await interaction.reply({ embeds: [embed], ephemeral: true });

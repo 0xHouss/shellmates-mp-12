@@ -6,6 +6,7 @@ const EventSchema = new mongoose.Schema({
     userId: { type: String, required: true, },
     createdAt: { type: Date, default: Date.now },
     status: { type: String, default: "Pending", enum: ["Pending", "Notified", "Canceled"] },
+    calendarEventId: { type: String, required: true },
 
     // required
     title: { type: String, required: true },

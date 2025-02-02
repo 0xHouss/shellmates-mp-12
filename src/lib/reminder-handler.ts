@@ -36,6 +36,11 @@ export class ReminderHandler {
             if (timeToWait > 0) {
                 await sleep(timeToWait);
 
+                const eventCheck = await EventModal.findById(event._id);
+
+                if (!eventCheck || eventCheck.status !== "Pending")
+                    return;
+
                 if (event.channelId) {
                     const channel = bot.client.channels.cache.get(event.channelId) as TextChannel;
 
@@ -57,6 +62,11 @@ export class ReminderHandler {
 
             if (timeToWait > 0) {
                 await sleep(timeToWait);
+
+                const eventCheck = await EventModal.findById(event._id);
+
+                if (!eventCheck || eventCheck.status !== "Pending")
+                    return;
 
                 if (event.channelId) {
                     const channel = bot.client.channels.cache.get(event.channelId) as TextChannel;

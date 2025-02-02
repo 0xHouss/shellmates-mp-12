@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import { reminderHandler } from '..';
-import { createEvent } from '../lib/google-calendar';
+import { ObjectId } from 'mongodb';
+import { googleCalendar, reminderHandler } from '..';
 import EventModal from '../schemas/event';
 
 function parseTime(input: string) {
@@ -129,18 +129,13 @@ export default {
             const datetime = parseTime(interaction.options.getString('datetime')!);
 
             if (!datetime) {
-                return interaction.reply({
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor(0xff0000)
-                            .setTitle("Invalid Datetime Format !")
-                            .setDescription("Please use YYYY-MM-DD HH:mm format.")
-                    ]
-                });
+                const embed = new EmbedBuilder()
+                    .setTitle("Invalid date & time format !")
+                    .setDescription("Please use 'dd-mm-yyyy HH:MM', 'dd/mm/yyyy HH:MM', 'in X [unit]' or 'in X [unit]s' format.")
+                    .setColor("Red");
+
+                return await interaction.reply({ embeds: [embed], ephemeral: true });
             }
-
-            await interaction.deferReply({ ephemeral: true });
-
             const description = interaction.options.getString('description');
             const meetLink = interaction.options.getString('meet');
             const leadTime = interaction.options.getString('leadtime');
@@ -155,7 +150,7 @@ export default {
                         .setDescription("Please use 'X [unit]', 'X [unit]s' format.")
                         .setColor("Red");
 
-                    return await interaction.editReply({ embeds: [embed] });
+                    return await interaction.reply({ embeds: [embed], ephemeral: true });
                 }
             }
 
@@ -168,8 +163,14 @@ export default {
                 leadTimeMs: leadTimeMs || 10 * 60 * 1000,
             }, interaction);
         } catch (error) {
-            console.error(error);
-            return interaction.editReply('There was an error scheduling your event. Please try again.');
+            console.error("Error scheduling event:", error);
+
+            const embed = new EmbedBuilder()
+                .setTitle("Error Scheduling Event")
+                .setDescription("There was an error scheduling your event. Please contact staff. ```" + error + "```")
+                .setColor("Red");
+
+            return await interaction.reply({ embeds: [embed], ephemeral: true });
         }
     }
 };
@@ -186,11 +187,9 @@ async function saveEvent(
     interaction: ChatInputCommandInteraction
 ) {
     try {
-        const newEvent = new EventModal(event);
+        await interaction.deferReply({ ephemeral: true });
 
-        const res = await newEvent.save();
-
-        await createEvent({
+        const calendarEvent = await googleCalendar.createEvent({
             summary: event.title,
             description: event.description,
             start: {
@@ -204,6 +203,10 @@ async function saveEvent(
             location: event.meetLink
         })
 
+        const newEvent = new EventModal({ ...event, calendarEventId: calendarEvent.id });
+
+        const res = await newEvent.save();
+
         const embed = new EmbedBuilder()
             .setTitle("✅ Meeting Scheduled Successfully!")
             .addFields(
@@ -212,6 +215,7 @@ async function saveEvent(
                     name: "🗓 Date & Time",
                     value: event.datetime.toString(),
                 },
+                { name: "🆔 ID", value: (res._id as ObjectId).toString() }
             )
             .setColor("Green");
 
@@ -225,9 +229,13 @@ async function saveEvent(
 
         reminderHandler.handle(res);
     } catch (error) {
-        console.error("Error saving reminder:", error);
-        return interaction.editReply(
-            "There was an error scheduling your meeting. Please try again later."
-        );
+        console.error("Error saving event:", error);
+
+        const embed = new EmbedBuilder()
+            .setTitle("Error Scheduling Event")
+            .setDescription("There was an error scheduling your event. Please contact staff. ```" + error + "```")
+            .setColor("Red");
+
+        await interaction.editReply({ embeds: [embed] });
     }
 }
