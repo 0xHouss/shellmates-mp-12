@@ -1,7 +1,8 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { ObjectId } from 'mongodb';
-import { googleCalendar, reminderHandler } from '..';
-import EventModal from '../schemas/event';
+import { googleCalendar, reminderHandler } from '../..';
+import EventModal from '../../schemas/event';
+import SlashCommand from '../../templates/SlashCommand';
 
 function parseTime(input: string) {
     const now = new Date();
@@ -94,7 +95,7 @@ function parseLeadTime(input: string) {
     }
 }
 
-export default {
+export default new SlashCommand({
     data: new SlashCommandBuilder()
         .setName('schedule')
         .setDescription('Schedule a new event')
@@ -173,7 +174,7 @@ export default {
             return await interaction.reply({ embeds: [embed], ephemeral: true });
         }
     }
-};
+})
 
 async function saveEvent(
     event: {

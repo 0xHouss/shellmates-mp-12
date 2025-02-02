@@ -1,14 +1,16 @@
 import type {
     ChatInputCommandInteraction,
-    SlashCommandBuilder
+    SlashCommandBuilder,
+    SlashCommandOptionsOnlyBuilder,
+    SlashCommandSubcommandsOnlyBuilder
 } from 'discord.js'
 
 export default class SlashCommand {
-    data: SlashCommandBuilder
+    data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder
     execute: (interaction: ChatInputCommandInteraction) => any
 
     constructor(options: {
-        data: SlashCommandBuilder
+        data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder
         execute: (interaction: ChatInputCommandInteraction) => any
     }) {
         this.data = options.data

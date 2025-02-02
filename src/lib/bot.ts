@@ -1,14 +1,18 @@
-import { Client, Collection, REST, Routes } from 'discord.js';
+import { Client, Collection, REST, RESTPostAPIApplicationCommandsJSONBody, Routes } from 'discord.js';
 import fs from 'fs/promises';
 import path from 'path';
-import { reminderHandler } from '..';
+import Event from '../templates/Event';
+import MessageCommand from '../templates/MessageCommand';
+import SlashCommand from '../templates/SlashCommand';
 import config from './config';
 import { connectToDatabase } from './db';
+import { reminderHandler } from '..';
 
 export default class Bot {
-    public commands = new Collection<string, any>();
-    public config = config;
-    private commandsArray: any[] = [];
+    public slashCommands = new Collection<string, SlashCommand>();
+    public messageCommands = new Collection<string, MessageCommand>();
+    public events = new Collection<string, Event>();
+    private slashCommandsArray: RESTPostAPIApplicationCommandsJSONBody[] = [];
 
     constructor(public readonly client: Client) {
         this.client.login(config.TOKEN);
@@ -17,11 +21,12 @@ export default class Bot {
         this.client.on('error', console.error);
 
         this.client.once("ready", async () => {
-            console.log(`Logged in as ${client.user!.tag} !`);
+            console.log(`Logged in as ${client.user?.tag} !`);
 
-            await connectToDatabase(); // Ensure DB is connected
+            await connectToDatabase();
             await this.importEvents();
             await this.importSlashCommands();
+            await this.importMessageCommands();
             await this.registerCommands();
             reminderHandler.initReminders();
         });
@@ -31,54 +36,68 @@ export default class Bot {
         const eventsDir = path.join(__dirname, '../events');
 
         const eventFiles = await fs.readdir(eventsDir);
-        eventFiles.filter(file => !file.endsWith('.map'));
+        eventFiles.filter(file => file.endsWith('.ts'));
 
         for (const file of eventFiles) {
             const filePath = path.join(eventsDir, file);
             const event = await import(filePath);
 
-            const currentEvent = event.default;
+            const currentEvent = event.default as Event;
+
+            this.events.set(currentEvent.name, currentEvent);
 
             if (currentEvent.once)
-                this.client.once(currentEvent.name, (...args) =>
-                    currentEvent.execute(...args)
-                );
+                this.client.once(currentEvent.name, currentEvent.execute);
             else
-                this.client.on(currentEvent.name, (...args) =>
-                    currentEvent.execute(...args)
-                );
+                this.client.on(currentEvent.name, currentEvent.execute);
         }
     }
 
     private async importSlashCommands() {
-        const commandsDir = path.join(__dirname, '../commands');
+        const commandsDir = path.join(__dirname, '../commands/slash');
 
         const commandFiles = await fs.readdir(commandsDir);
-        commandFiles.filter(file => !file.endsWith('.map'));
+        commandFiles.filter(file => file.endsWith('.ts'));
 
         for (const file of commandFiles) {
             const filePath = path.join(commandsDir, file);
             const command = await import(filePath);
-            const currentCommand = command.default;
+            const currentCommand = command.default as SlashCommand;
 
-            this.commands.set(currentCommand.data.name, currentCommand);
-            console.log(`Loaded command ${currentCommand.data.name}.`);
+            this.slashCommands.set(currentCommand.data.name, currentCommand);
+            console.log(`Loaded slash command: ${currentCommand.data.name}`);
 
             const commandData = currentCommand.data.toJSON();
-            this.commandsArray.push(commandData);
+            this.slashCommandsArray.push(commandData);
+        }
+    }
+
+    private async importMessageCommands() {
+        const commandsDir = path.join(__dirname, '../commands/message');
+
+        const commandFiles = await fs.readdir(commandsDir);
+        commandFiles.filter(file => file.endsWith('.ts'));
+
+        for (const file of commandFiles) {
+            const filePath = path.join(commandsDir, file);
+            const command = await import(filePath);
+            const currentCommand = command.default as MessageCommand;
+
+            this.messageCommands.set(currentCommand.name, currentCommand);
+            console.log(`Loaded message command: ${currentCommand.name}`);
         }
     }
 
     private async registerCommands() {
-        const rest = new REST({ version: '9' }).setToken(config.TOKEN);
+        const rest = new REST({ version: '10' }).setToken(config.TOKEN);
 
         try {
             await rest.put(
                 Routes.applicationCommands(config.CLIENT_ID),
-                { body: this.commandsArray }
+                { body: this.slashCommandsArray }
             );
 
-            console.log('Successfully registered application commands !');
+            console.log('Successfully registered application (/) commands !');
         } catch (error) {
             console.error(error);
         }

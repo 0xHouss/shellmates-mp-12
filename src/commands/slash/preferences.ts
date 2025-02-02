@@ -1,8 +1,9 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import { isValidEmail } from '../lib/utils';
-import UserModal from '../schemas/user';
+import { isValidEmail } from '../../lib/utils';
+import UserModal from '../../schemas/user';
+import SlashCommand from '../../templates/SlashCommand';
 
-async function setPereferences(interaction: ChatInputCommandInteraction) {
+async function setPreferences(interaction: ChatInputCommandInteraction) {
     const timezone = interaction.options.getString('timezone');
     const email = interaction.options.getString('email');
 
@@ -54,7 +55,7 @@ async function listPreferences(interaction: ChatInputCommandInteraction) {
     await interaction.reply({ embeds: [embed] });
 }
 
-export default {
+export default new SlashCommand({
     data: new SlashCommandBuilder()
         .setName('preferences')
         .setDescription('Preferences commands')
@@ -78,14 +79,14 @@ export default {
                 .setName('list')
                 .setDescription('List your preferences')
         ),
-    async execute(interaction: ChatInputCommandInteraction) {
+    async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
 
         const subcommands = {
-            set: setPereferences,
+            set: setPreferences,
             list: listPreferences
         }
 
         subcommands[subcommand as keyof typeof subcommands](interaction);
     }
-};
+})
