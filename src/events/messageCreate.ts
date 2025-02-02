@@ -11,12 +11,16 @@ export default new Event({
             return
 
         try {
-            // get the arguments and the actual command name for the inputted command
-            const args = message.content
+            // Extract arguments correctly, handling quoted strings
+            let matches = message.content
                 .slice(config.BOT_PREFIX.length)
                 .trim()
-                .split(/ +/)
-            const commandName = (<string>args.shift()).toLowerCase()
+                .match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+
+            // Remove quotes from quoted arguments
+            const args = matches.map(arg => arg.replace(/^"(.*)"$/, '$1'));
+
+            const commandName = args.shift()!.toLowerCase()
 
             const command = bot.messageCommands.get(commandName)
 
