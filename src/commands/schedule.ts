@@ -1,14 +1,13 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { reminderHandler } from '..';
 import { createEvent } from '../lib/google-calendar';
 import EventModal from '../schemas/event';
-import UserModal from '../schemas/user';
 
 function parseTime(input: string) {
     const now = new Date();
 
     // Handle absolute time in "dd-mm-yyyy HH:MM" or "dd/mm/yyyy HH:MM" format
-    const absoluteTimeRegex = /^(\d{2})[-\/](\d{2})[-\/](\d{4})\s+(\d{2}):(\d{2})$/;
+    const absoluteTimeRegex = /^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})$/;
     const absoluteMatch = input.match(absoluteTimeRegex);
 
     if (absoluteMatch) {
@@ -95,7 +94,6 @@ function parseLeadTime(input: string) {
     }
 }
 
-
 export default {
     data: new SlashCommandBuilder()
         .setName('schedule')
@@ -130,64 +128,106 @@ export default {
             const title = interaction.options.getString('title')!;
             const datetime = parseTime(interaction.options.getString('datetime')!);
 
-            if (!datetime)
-                return interaction.reply(`Invalid datetime format. Please use 'dd-mm-yyyy HH:MM', 'dd/mm/yyyy HH:MM', 'in X [unit]' or 'in X [unit]s' format."`);
+            if (!datetime) {
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(0xff0000)
+                            .setTitle("Invalid Datetime Format !")
+                            .setDescription("Please use YYYY-MM-DD HH:mm format.")
+                    ]
+                });
+            }
 
             await interaction.deferReply({ ephemeral: true });
 
             const description = interaction.options.getString('description');
             const meetLink = interaction.options.getString('meet');
             const leadTime = interaction.options.getString('leadtime');
-            let leadTimeMs;
+            let leadTimeMs: number | null | undefined = null;
 
             if (leadTime) {
                 leadTimeMs = parseLeadTime(leadTime);
 
-                if (!leadTimeMs)
-                    return interaction.editReply(`Invalid lead time format. Please use 'X [unit]', 'X [unit]s' format."`);
+                if (!leadTimeMs) {
+                    const embed = new EmbedBuilder()
+                        .setTitle("Invalid Lead Time Format !")
+                        .setDescription("Please use 'X [unit]', 'X [unit]s' format.")
+                        .setColor("Red");
+
+                    return await interaction.editReply({ embeds: [embed] });
+                }
             }
 
-            const user = await UserModal.findOne({ userId: interaction.user.id });
-
-            const eventModal = new EventModal({
+            return await saveEvent({
                 userId: interaction.user.id,
                 title,
                 datetime,
                 description,
-                leadTimeMs,
-                meetLink
-            })
-
-            const newEvent = await eventModal.save();
-
-            await createEvent({
-                summary: title,
-                description,
-                start: {
-                    dateTime: datetime.toISOString(),
-                    timeZone: 'GMT'
-                },
-                attendees: [{ email: user?.email }],
-                end: {
-                    dateTime: new Date(datetime.getTime() + 60 * 60 * 1000).toISOString(),
-                    timeZone: 'GMT'
-                },
-                location: meetLink
-            })
-
-            await interaction.editReply(`
-### Event scheduled successfully!
-**Title:** ${title}
-**Date & Time:** ${datetime.toLocaleString()}
-**Description:** ${description || 'N/A'}
-**Google Meet Link:** ${meetLink || 'N/A'}
-**ID:** ${newEvent.id}
-            `);
-
-            reminderHandler.handle(newEvent);
+                meetLink,
+                leadTimeMs: leadTimeMs || 10 * 60 * 1000,
+            }, interaction);
         } catch (error) {
             console.error(error);
-            return interaction.reply('There was an error scheduling your event. Please make sure your input is valid and try again.');
+            return interaction.editReply('There was an error scheduling your event. Please try again.');
         }
     }
 };
+
+async function saveEvent(
+    event: {
+        userId: string;
+        title: string;
+        datetime: Date;
+        description: string | null;
+        meetLink: string | null;
+        leadTimeMs: number | null;
+    },
+    interaction: ChatInputCommandInteraction
+) {
+    try {
+        const newEvent = new EventModal(event);
+
+        const res = await newEvent.save();
+
+        await createEvent({
+            summary: event.title,
+            description: event.description,
+            start: {
+                dateTime: event.datetime.toISOString(),
+                timeZone: 'GMT'
+            },
+            end: {
+                dateTime: new Date(event.datetime.getTime() + 60 * 60 * 1000).toISOString(),
+                timeZone: 'GMT'
+            },
+            location: event.meetLink
+        })
+
+        const embed = new EmbedBuilder()
+            .setTitle("✅ Meeting Scheduled Successfully!")
+            .addFields(
+                { name: "📌 Title", value: event.title },
+                {
+                    name: "🗓 Date & Time",
+                    value: event.datetime.toString(),
+                },
+            )
+            .setColor("Green");
+
+        if (event.description)
+            embed.addFields({ name: "📝 Description", value: event.description });
+
+        if (event.meetLink)
+            embed.addFields({ name: "🔗 Google Meet Link", value: event.meetLink });
+
+        await interaction.editReply({ embeds: [embed] });
+
+        reminderHandler.handle(res);
+    } catch (error) {
+        console.error("Error saving reminder:", error);
+        return interaction.editReply(
+            "There was an error scheduling your meeting. Please try again later."
+        );
+    }
+}
