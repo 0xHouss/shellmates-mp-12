@@ -1,16 +1,18 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder,EmbedBuilder, Role, User } from 'discord.js';
 import { reminderHandler } from '..';
 import { createEvent } from '../lib/google-calendar';
 import EventModal from '../schemas/event';
+import { parseDateTime } from "../lib/utils";
+import Event from "../schemas/event";
 
 function parseTime(input: string) {
     const now = new Date();
 
     // Handle absolute time in "dd-mm-yyyy HH:MM" or "dd/mm/yyyy HH:MM" format
-    const absoluteTimeRegex = /^(\d{2})[-\/](\d{2})[-\/](\d{4})\s+(\d{2}):(\d{2})$/;
+    const absoluteTimeRegex = /^(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})$/;
     const absoluteMatch = input.match(absoluteTimeRegex);
 
-    if (absoluteMatch) {
+  /*  if (absoluteMatch) {
         const day = parseInt(absoluteMatch[1], 10);
         const month = parseInt(absoluteMatch[2], 10) - 1; // Months are 0-indexed in JS Date
         const year = parseInt(absoluteMatch[3], 10);
@@ -22,10 +24,32 @@ function parseTime(input: string) {
         // Validate and ensure the date is in the future
         if (!isNaN(date.getTime()) && date > now)
             return date;
-    }
+    } */
+
+        // my code : fassih 
+
+        if (absoluteMatch) {
+            return absoluteMatch;
+            /*const date = absoluteMatch[1];
+        const time = absoluteMatch[2];
+ const timezone = "America/New_York";
+        const dateTime = parseDateTime(date, time, timezone);
+        if (isNaN(dateTime.getTime())) {
+            return null;}
+
+            else return dateTime;*/
+
+        }
+
+
+
+
+
 
     // Handle relative times in "in X [unit]" format or other variations (e.g., "5 mins", "5s")
-    const relativeTimeRegex = /(\d+)\s*(second|minute|hour|day|week|month|year|sec|min|s|m|h|d|w|mo|y)s?/i;
+
+    // fassih :i commanted this part of houssem , i didn't understand it well 
+  /*  const relativeTimeRegex = /(\d+)\s*(second|minute|hour|day|week|month|year|sec|min|s|m|h|d|w|mo|y)s?/i;
 
     if (relativeTimeRegex.test(input)) {
         const match = input.match(relativeTimeRegex);
@@ -56,7 +80,7 @@ function parseTime(input: string) {
             const multiplier = multiplierMap[unit];
             return new Date(now.getTime() + value * multiplier);
         }
-    }
+    }*/
 }
 
 function parseLeadTime(input: string) {
@@ -108,6 +132,16 @@ export default {
             option.setName('datetime')
                 .setDescription('The date and time of the event')
                 .setRequired(true)
+        ).
+        addRoleOption(option => 
+            option.setName('roles')
+                .setDescription('Roles to mention')
+                .setRequired(true)
+        ).
+        addUserOption(option =>
+            option.setName('users')
+                .setDescription('Users to mention')
+                .setRequired(false)
         )
         .addStringOption(option =>
             option.setName('description')
@@ -127,10 +161,40 @@ export default {
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             const title = interaction.options.getString('title')!;
-            const datetime = parseTime(interaction.options.getString('datetime')!);
+            const match = parseTime(interaction.options.getString('datetime')!);
+            if (match){
+                const date = match[1];
+                const time = match[2];
+                const timezone = "America/New_York";
+                const dateTime = parseDateTime(date, time, timezone);
+                if (isNaN(dateTime.getTime())) {
+                    return interaction.reply(    {
+                        embeds: [
+                            new EmbedBuilder()
+                                .setColor(0xff0000)
+                                .setTitle("❌ Invalid Date/Time Format")
+                                .setDescription("Please use YYYY-MM-DD HH:mm format.")
+                        ]
+                    });
+            }
 
-            if (!datetime)
-                return interaction.reply(`Invalid datetime format. Please use 'dd-mm-yyyy HH:MM', 'dd/mm/yyyy HH:MM', 'in X [unit]' or 'in X [unit]s' format."`);
+            const mentionedRole = interaction.options.getRole('roles');
+            const mentionedUser = interaction.options.getUser('users');
+            
+            const roleMentions = mentionedRole ? `<@&${mentionedRole.id}>` : "None";
+            const userMentions = mentionedUser ? `<@${mentionedUser.id}>` : "None";
+
+            if (roleMentions.length===0 && userMentions.length===0) {
+                return interaction.reply({
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(0xff0000)
+                            .setTitle("❌ Invalid Command Format")
+                            .setDescription("You must mention at least one role or user to schedule a meeting.")
+                    ],
+                    ephemeral: true
+                });
+            }
 
             await interaction.deferReply({ ephemeral: true });
 
@@ -146,7 +210,35 @@ export default {
                     return interaction.editReply(`Invalid lead time format. Please use 'X [unit]', 'X [unit]s' format."`);
             }
 
-            const eventModal = new EventModal({
+            const scheduleData = {
+                title,
+                dateTime,
+              // roleIds: roleMentions,
+                rolename: roleMentions,
+                username: userMentions,
+                description,
+                meetLink,
+            };
+         
+            insertReminder(scheduleData, interaction);
+
+        
+        }
+
+           /* if (!datetime){
+                return interaction.reply(    {
+                    embeds: [
+                        new EmbedBuilder()
+                            .setColor(0xff0000)
+                            .setTitle("❌ Invalid Date/Time Format")
+                            .setDescription("Please use YYYY-MM-DD HH:mm format.")
+                    ]
+                });
+                        }*/
+                        
+
+          
+         /*   const eventModal = new EventModal({
                 userId: interaction.user.id,
                 title,
                 datetime,
@@ -180,10 +272,103 @@ export default {
 **ID:** ${newEvent.id}
             `);
 
-            reminderHandler.handle(newEvent);
+            reminderHandler.handle(newEvent);*/
+            return;
         } catch (error) {
             console.error(error);
-            return interaction.reply('There was an error scheduling your event. Please make sure your input is valid and try again.');
-        }
+            return interaction.editReply('There was an error scheduling your event. Please try again.');
+         }
     }
 };
+
+
+
+
+async function insertReminder(
+    scheduleData: {
+        title: string;
+        dateTime: Date;
+      //  roleIds: string[];
+        rolename:  string;
+        username: string;
+        description: string | null;
+        meetLink: string | null;
+    },
+    interaction: ChatInputCommandInteraction
+) {
+    const { title, dateTime,rolename,username,  description, meetLink } = scheduleData;
+
+    try {
+        const newEvent = new Event({
+            userId:  interaction.user.id,
+            title,
+            datetime: dateTime,
+            description,
+            leadTimeMs: 10 * 60 * 1000,
+            channelId: interaction.channel?.id,
+            meetLink,
+        });
+
+        const res = await newEvent.save();
+        reminderHandler.handle(res);
+        const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle("✅ Meeting Scheduled Successfully!")
+        .addFields(
+            { name: "📌 Title", value: title },
+            {
+                name: "🗓 Date & Time",
+                value: dateTime.toLocaleString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                }),
+            },
+            { name: "🏷️ Roles", value: rolename},
+            { 
+                name: "👥 Participants", 
+                value: username, 
+              }
+           // { name: "👥 Users", value: Array.isArray(username) ? username.join(", ") : username }
+        );
+
+
+        // this is the previous without the embdes
+
+      /*  let confirmationMessage = `
+    🎉 **Meeting Scheduled Successfully!**
+    **Title:** ${title}
+    **Date & Time:** ${dateTime.toLocaleString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        })}
+    **Role:** ${Array.isArray(rolename) ? rolename.join(", ") : rolename}
+    `; */
+
+    
+
+        if (description) {
+            embed.addFields({ name: "📝 Description", value: description });
+        }
+
+        if (meetLink) {
+            embed.addFields({ name: "🔗 Google Meet Link", value: meetLink });
+        }
+
+        return interaction.editReply({ embeds: [embed] });
+    } catch (error) {
+        console.error("Error saving reminder:", error);
+        return interaction.editReply(
+            "There was an error scheduling your meeting. Please try again later."
+        );
+    }
+}
