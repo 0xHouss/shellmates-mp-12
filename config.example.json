@@ -1,6 +1,7 @@
 {
     "TOKEN": "your token here",
     "CLIENT_ID": "your client id here",
+    "BOT_PREFIX": "your bot prefix here",
     "MONGODB_URI": "your mongodb uri here",
     "GOOGLE_CALENDAR_ID": "your google calendar id here",
     "DB_NAME": "your db name here"

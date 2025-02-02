@@ -7,6 +7,7 @@ const configSchema = z.object({
     // Bot
     TOKEN: z.string(),
     CLIENT_ID: z.string(),
+    BOT_PREFIX: z.string(),
 
     // Database
     MONGODB_URI: z.string(),
