@@ -26,7 +26,21 @@ export default async function scheduleCommand(message: Message) {
 
     const remainingArgs = args.join(" ");
     const regex =
-/"([^"]+)"\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s+((?:<@&\d+>|<@!?\d+>|@everyone|@here)(?:\s+(?:<@&\d+>|<@!?\d+>|@everyone|@here))*)(?:\s+"([^"]*)")?(?:\s+(https?:\/\/\S+))?/;    const match = remainingArgs.match(regex);
+/"([^"]+)"\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s+((?:<@&\d+>|<@!?\d+>|@everyone|@here)(?:\s+(?:<@&\d+>|<@!?\d+>|@everyone|@here))*)(?:\s+"([^"]*)")?(?:\s+(https?:\/\/\S+))?/; 
+   const match = remainingArgs.match(regex);
+
+   // handle when there is no role or user , and i think this place is better for it
+   if (message.mentions.roles.size === 0 && message.mentions.users.size === 0) {
+        return message.reply(
+            {
+                embeds: [
+                    new EmbedBuilder()
+                        .setColor(0xff0000)
+                        .setTitle("❌ Invalid Command Format")
+                        .setDescription("You must mention at least one role or user to schedule a meeting.")
+                ]
+            })
+   }
 
     if (match) {
         const title = match[1];
@@ -81,7 +95,12 @@ export default async function scheduleCommand(message: Message) {
                     new EmbedBuilder()
                         .setColor(0xff0000)
                         .setTitle("❌ Invalid Command Format")
-                        .setDescription('Usage: \`!schedule "Meeting Title" YYYY-MM-DD HH:mm @participants\`')
+                        .setDescription( "Your command format seems to be incorrect. Please check the following:\n" +
+                            "- Is the meeting title enclosed in double quotes?\n" +
+                            "- Is the date in YYYY-MM-DD format?\n" +
+                            "- Is the time in HH:MM format?\n" +
+                            "- Did you mention at least one role or participant correctly?\n\n" +
+                            "use this format: `!schedule \"Title of the Meeting\" YYYY-MM-DD HH:MM @Role [Optional: Description] [Optional: Google Meet Link]\`")
                 ]
             }
         );
@@ -132,7 +151,8 @@ async function insertReminder(
                     hour12: false,
                 }),
             },
-            { name: "🏷️ Roles", value: Array.isArray(rolename) ? rolename.join(", ") : rolename },
+            { name: "🏷️ Roles", value: Array.isArray(rolename) && rolename.length > 0
+                  ? rolename.join(", ") : "None" },
             { 
                 name: "👥 Participants", 
                 value: Array.isArray(username) && username.length > 0 
