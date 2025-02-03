@@ -126,6 +126,8 @@ export default new SlashCommand({
         ),
     async execute(interaction: ChatInputCommandInteraction) {
         try {
+            if (!interaction.guildId) return;
+
             const title = interaction.options.getString('title')!;
             const datetime = parseDatetime(interaction.options.getString('datetime')!);
 
@@ -157,6 +159,7 @@ export default new SlashCommand({
 
             return await saveEvent({
                 userId: interaction.user.id,
+                guildId: interaction.guildId,
                 title,
                 datetime,
                 description,
@@ -179,6 +182,7 @@ export default new SlashCommand({
 async function saveEvent(
     event: {
         userId: string;
+        guildId: string;
         title: string;
         datetime: Date;
         description: string | null;

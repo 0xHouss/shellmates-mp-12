@@ -11,6 +11,7 @@ export default new SlashCommand({
             datetime: {
                 $gte: new Date(),
             },
+            guildId: interaction.guildId,
             status: "Pending"
         }).sort({ datetime: 1 });
 

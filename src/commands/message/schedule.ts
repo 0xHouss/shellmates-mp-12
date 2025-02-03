@@ -12,6 +12,8 @@ export default new MessageCommand({
     name: "schedule",
     description: "Schedule a new meeting",
     async execute(message: Message, args: string[]) {
+        if (!message.guildId) return;
+
         if (!args.length) {
             const embed = new EmbedBuilder()
                 .setTitle("📅 How to Schedule a Meeting")
@@ -56,6 +58,7 @@ export default new MessageCommand({
 
         return await saveEvent({
             userId: message.author.id,
+            guildId: message.guildId,
             title,
             datetime,
             description: description || null,
@@ -70,6 +73,7 @@ export default new MessageCommand({
 async function saveEvent(
     event: {
         userId: string;
+        guildId: string;
         title: string;
         datetime: Date;
         description: string | null;
@@ -98,12 +102,13 @@ async function saveEvent(
         })
 
         const newEvent = new EventModal({
+            userId: event.userId,
+            guildId: event.guildId,
             title: event.title,
             datetime: event.datetime,
             description: event.description,
             meetLink: event.meetLink,
             leadTimeMs: event.leadTimeMs,
-            userId: event.userId,
             roles: event.roles.map(role => role.id),
             users: event.users.map(user => user.id),
             calendarEventId: calendarEvent.id
@@ -130,17 +135,17 @@ async function saveEvent(
             embed.addFields({ name: "🔗 Google Meet Link", value: event.meetLink });
 
         if (event.roles.length || event.users.length) {
-            let mentions = "";
+            const mentions: string[] = [];
 
             if (event.roles.length) {
-                mentions += event.roles.map(role => `<@&${role.id}>`).join(" ");
+                mentions.push(...event.roles.map(role => `<@&${role.id}>`));
             }
 
             if (event.users.length) {
-                mentions += event.users.map(user => `<@${user.id}>`).join(" ");
+                mentions.push(...event.users.map(user => `<@${user.id}>`));
             }
 
-            embed.addFields({ name: "👥 Participants", value: mentions });
+            embed.addFields({ name: "👥 Participants", value: mentions.join(", ") });
         }
 
         await reply.edit({ embeds: [embed] });

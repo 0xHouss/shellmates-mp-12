@@ -1,7 +1,7 @@
 import { EmbedBuilder, TextChannel } from "discord.js";
 import { bot } from "..";
 import EventModal, { IEvent } from "../schemas/event";
-import { sleep } from "./utils";
+import { removeDuplicates, sleep } from "./utils";
 
 export class ReminderHandler {
     async handle(event: IEvent) {
@@ -14,7 +14,7 @@ export class ReminderHandler {
             let timeToWait = reminderTime.getTime() - now.getTime();
 
             const reminderEmbed = new EmbedBuilder()
-                .setTitle(`🔔 Reminder: "${event.title}" starts in ${leadTimeMinutes} minutes!`)
+                .setTitle(`🔔 The event **"${event.title}"** is starting in ${leadTimeMinutes} minutes!`)
                 .setColor("Blue")
                 .setTimestamp();
 
@@ -51,9 +51,28 @@ export class ReminderHandler {
 
                     await channel.send({ embeds: [reminderEmbed] });
                 } else {
-                    const user = await bot.client.users.fetch(event.userId)
+                    let participantsIds = event.users;
 
-                    await user.send({ embeds: [reminderEmbed] });
+                    for (const roleId of event.roles) {
+                        const role = await bot.client.guilds.cache.get(event.guildId)!.roles.fetch(roleId);
+
+                        if (!role) {
+                            console.error(`Role with ID ${roleId} not found.`);
+                            continue;
+                        }
+
+                        participantsIds.push(...role.members.map(member => member.id));
+                    }
+
+                    participantsIds = removeDuplicates(participantsIds);
+
+                    for (const userId of participantsIds) {
+                        const user = await bot.client.users.fetch(userId);
+
+                        try {
+                            await user.send({ embeds: [reminderEmbed] });
+                        } catch (error) {}
+                    }
                 }
             }
 
@@ -78,9 +97,31 @@ export class ReminderHandler {
 
                     await channel.send({ embeds: [eventEmbed] });
                 } else {
-                    const user = await bot.client.users.fetch(event.userId)
+                    let participantsIds = event.users;
 
-                    await user.send({ embeds: [eventEmbed] });
+                    for (const roleId of event.roles) {
+                        const role = await bot.client.guilds.cache.get(event.guildId)!.roles.fetch(roleId);
+                        console.log(role, roleId);
+
+                        if (!role) {
+                            console.error(`Role with ID ${roleId} not found.`);
+                            continue;
+                        }
+
+                        console.log(role.members.map(member => member.id));
+
+                        participantsIds.push(...role.members.map(member => member.id));
+                    }
+
+                    participantsIds = removeDuplicates(participantsIds);
+
+                    for (const userId of participantsIds) {
+                        const user = await bot.client.users.fetch(userId);
+
+                        try {
+                            await user.send({ embeds: [eventEmbed] });
+                        } catch (error) {}
+                    }
                 }
             }
 
