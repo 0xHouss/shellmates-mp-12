@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { Channel, ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { ObjectId } from 'mongodb';
 import { googleCalendar, reminderHandler } from '../..';
 import EventModal from '../../schemas/event';
@@ -114,6 +114,11 @@ export default new SlashCommand({
                 .setDescription('The description of the event')
                 .setRequired(false)
         )
+        .addChannelOption(option =>
+            option.setName('channel')
+                .setDescription('The channel to announce the event')
+                .setRequired(false)
+        )
         .addStringOption(option =>
             option.setName('meet')
                 .setDescription('The google meet link')
@@ -140,6 +145,7 @@ export default new SlashCommand({
                 return await interaction.reply({ embeds: [embed], ephemeral: true });
             }
             const description = interaction.options.getString('description');
+            const channel = interaction.options.getChannel('channel');
             const meetLink = interaction.options.getString('meet');
             const leadTime = interaction.options.getString('leadtime');
             let leadTimeMs: number | null | undefined = null;
@@ -163,6 +169,7 @@ export default new SlashCommand({
                 title,
                 datetime,
                 description,
+                channelId: channel?.id,
                 meetLink,
                 leadTimeMs: leadTimeMs || 10 * 60 * 1000,
             }, interaction);
@@ -186,6 +193,7 @@ async function saveEvent(
         title: string;
         datetime: Date;
         description: string | null;
+        channelId?: string;
         meetLink: string | null;
         leadTimeMs: number | null;
     },
@@ -226,6 +234,9 @@ async function saveEvent(
 
         if (event.description)
             embed.addFields({ name: "📝 Description", value: event.description });
+
+        if (event.channelId)
+            embed.addFields({ name: "📡 Channel", value: `<#${event.channelId}>` });
 
         if (event.meetLink)
             embed.addFields({ name: "🔗 Google Meet Link", value: event.meetLink });

@@ -49,7 +49,10 @@ export class ReminderHandler {
                         return;
                     }
 
-                    await channel.send({ embeds: [reminderEmbed] });
+                    await channel.send({
+                        content: event.roles.map(roleId => `<@&${roleId}>`).concat(event.users.map(userId => `<@${userId}`)).join(" "),
+                        embeds: [reminderEmbed]
+                    });
                 } else {
                     let participantsIds = event.users;
 
@@ -71,7 +74,7 @@ export class ReminderHandler {
 
                         try {
                             await user.send({ embeds: [reminderEmbed] });
-                        } catch (error) {}
+                        } catch (error) { }
                     }
                 }
             }
@@ -95,7 +98,10 @@ export class ReminderHandler {
                         return;
                     }
 
-                    await channel.send({ embeds: [eventEmbed] });
+                    await channel.send({
+                        content: event.roles.map(roleId => `<@&${roleId}>`).concat(event.users.map(userId => `<@${userId}>`)).join(" "),
+                        embeds: [eventEmbed]
+                    });
                 } else {
                     let participantsIds = event.users;
 
@@ -120,7 +126,7 @@ export class ReminderHandler {
 
                         try {
                             await user.send({ embeds: [eventEmbed] });
-                        } catch (error) {}
+                        } catch (error) { }
                     }
                 }
             }

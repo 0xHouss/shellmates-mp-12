@@ -1,4 +1,4 @@
-import { EmbedBuilder, Message, Role, User } from "discord.js";
+import { Channel, EmbedBuilder, Message, Role, User } from "discord.js";
 import { ObjectId } from "mongoose";
 import { googleCalendar, reminderHandler } from "../..";
 import config from "../../lib/config";
@@ -19,11 +19,11 @@ export default new MessageCommand({
                 .setTitle("📅 How to Schedule a Meeting")
                 .setDescription(
                     "To schedule a meeting, use the following format:\n" +
-                    `\`\`\`${config.BOT_PREFIX}schedule "Title of the Meeting" "date and time" [Optional: Description] [Optional: Lead Time] [Optional: Google Meet Link] [Optional: Mentions]\`\`\``
+                    `\`\`\`${config.BOT_PREFIX}schedule "Title of the Meeting" "date and time" [Optional: Description] [Optional: Lead Time] [Optional: Google Meet Link] [Optional: Announcement Channel] [Optional: Mentions]\`\`\``
                 )
                 .addFields({
                     name: "Example:",
-                    value: `\`\`\`${config.BOT_PREFIX}schedule "Team Sync" "in 1 hour" "Weekly team sync meeting" "10 mins" https://meet.google.com/abc-xyz @johndoe @admins\`\`\``
+                    value: `\`\`\`${config.BOT_PREFIX}schedule "Team Sync" "in 1 hour" "Weekly team sync meeting" "10 mins" https://meet.google.com/abc-xyz #events @johndoe @admins\`\`\``
                 })
                 .addFields({
                     name: "Date and time formats:",
@@ -55,7 +55,6 @@ export default new MessageCommand({
             return await message.reply({ embeds: [embed] });
         }
 
-
         return await saveEvent({
             userId: message.author.id,
             guildId: message.guildId,
@@ -65,7 +64,8 @@ export default new MessageCommand({
             leadTimeMs: leadTimeMs || 10 * 60 * 1000,
             meetLink: meetLink || null,
             roles: removeDuplicates(message.mentions.roles.map(role => role)),
-            users: removeDuplicates(message.mentions.users.map(user => user).concat(message.author))
+            users: removeDuplicates(message.mentions.users.map(user => user).concat(message.author)),
+            channel: message.mentions.channels.first()
         }, message);
     },
 });
@@ -81,6 +81,7 @@ async function saveEvent(
         meetLink: string | null;
         roles: Role[];
         users: User[];
+        channel?: Channel;
     },
     message: Message
 ) {
@@ -105,6 +106,7 @@ async function saveEvent(
             userId: event.userId,
             guildId: event.guildId,
             title: event.title,
+            channelId: event.channel?.id,
             datetime: event.datetime,
             description: event.description,
             meetLink: event.meetLink,
@@ -133,6 +135,10 @@ async function saveEvent(
 
         if (event.meetLink)
             embed.addFields({ name: "🔗 Google Meet Link", value: event.meetLink });
+
+        if (event.channel) {
+            embed.addFields({ name: "📡 Channel", value: `<#${event.channel.id}>` });
+        }
 
         if (event.roles.length || event.users.length) {
             const mentions: string[] = [];
