@@ -11,3 +11,5 @@ export const convertTimezone = (date: Date, fromTimezone: string, toTimezone: st
 export const formatDateTime = (date: Date, timezone: string) => moment.tz(date, timezone).format('YYYY-MM-DD HH:mm');
 
 export const getReminderTime = (eventDate: Date, leadTimeMs: number) => new Date(eventDate.getTime() - leadTimeMs);
+
+export const removeDuplicates = <T>(arr: T[]) => [...new Set(arr)];

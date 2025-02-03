@@ -4,7 +4,7 @@ import { googleCalendar, reminderHandler } from '../..';
 import EventModal from '../../schemas/event';
 import SlashCommand from '../../templates/SlashCommand';
 
-function parseTime(input: string) {
+export function parseDatetime(input: string) {
     const now = new Date();
 
     // Handle absolute time in "dd-mm-yyyy HH:MM" or "dd/mm/yyyy HH:MM" format
@@ -60,7 +60,7 @@ function parseTime(input: string) {
     }
 }
 
-function parseLeadTime(input: string) {
+export function parseLeadTime(input: string) {
     const relativeTimeRegex = /(\d+)\s*(second|minute|hour|day|week|month|year|sec|min|s|m|h|d|w|mo|y)s?/i;
 
     if (relativeTimeRegex.test(input)) {
@@ -127,7 +127,7 @@ export default new SlashCommand({
     async execute(interaction: ChatInputCommandInteraction) {
         try {
             const title = interaction.options.getString('title')!;
-            const datetime = parseTime(interaction.options.getString('datetime')!);
+            const datetime = parseDatetime(interaction.options.getString('datetime')!);
 
             if (!datetime) {
                 const embed = new EmbedBuilder()

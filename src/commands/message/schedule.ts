@@ -1,9 +1,12 @@
-import { EmbedBuilder, Message } from "discord.js";
-import { reminderHandler } from "../..";
+import { EmbedBuilder, Message, Role, User } from "discord.js";
+import { ObjectId } from "mongoose";
+import { googleCalendar, reminderHandler } from "../..";
 import config from "../../lib/config";
-import { parseDateTime } from "../../lib/utils";
-import Event from "../../schemas/event";
+import { removeDuplicates } from "../../lib/utils";
+import EventModal from "../../schemas/event";
+import UserModal from "../../schemas/user";
 import MessageCommand from "../../templates/MessageCommand";
+import { parseDatetime, parseLeadTime } from "../slash/schedule";
 
 export default new MessageCommand({
     name: "schedule",
@@ -14,190 +17,143 @@ export default new MessageCommand({
                 .setTitle("📅 How to Schedule a Meeting")
                 .setDescription(
                     "To schedule a meeting, use the following format:\n" +
-                    `\`\`\`${config.BOT_PREFIX}schedule "Title of the Meeting" YYYY-MM-DD HH:MM @Role [Optional: Description] [Optional: Google Meet Link]\`\`\``
+                    `\`\`\`${config.BOT_PREFIX}schedule "Title of the Meeting" "date and time" [Optional: Description] [Optional: Lead Time] [Optional: Google Meet Link] [Optional: Mentions]\`\`\``
                 )
                 .addFields({
                     name: "Example:",
-                    value: `\`\`\`${config.BOT_PREFIX}schedule "Team Sync" 2023-10-10 14:30 @Developers "Weekly team sync meeting" https://meet.google.com/abc-xyz\`\`\``
+                    value: `\`\`\`${config.BOT_PREFIX}schedule "Team Sync" "in 1 hour" "Weekly team sync meeting" "10 mins" https://meet.google.com/abc-xyz @johndoe @admins\`\`\``
+                })
+                .addFields({
+                    name: "Date and time formats:",
+                    value: "You can use 'dd-mm-yyyy HH:MM', 'dd/mm/yyyy HH:MM', 'in X [unit]' or 'in X [unit]s' formats."
+                })
+                .addFields({
+                    name: "Note:",
+                    value: "If you want to leave an optional argument empty you need to put empty quotes."
                 })
                 .setColor("Orange");
 
             return await message.reply({ embeds: [embed] });
         }
 
-        const remainingArgs = args.join(" ");
-        const regex =
-            /"([^"]+)"\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})\s+((?:<@&\d+>|<@!?\d+>|@everyone|@here)(?:\s+(?:<@&\d+>|<@!?\d+>|@everyone|@here))*)(?:\s+"([^"]*)")?(?:\s+(https?:\/\/\S+))?/;
-        const match = remainingArgs.match(regex);
+        const [title, datetimeStr, description, leadtimeStr, meetLink] = args;
 
-        // handle when there is no role or user , and i think this place is better for it
-        if (!message.mentions.roles.size && !message.mentions.users.size) {
+        const user = await UserModal.findOne({ userId: message.author.id });
+
+        const timezone = user?.timezone;
+        const datetime = parseDatetime(datetimeStr);
+        const leadTimeMs = parseLeadTime(leadtimeStr);
+
+        if (!datetime) {
             const embed = new EmbedBuilder()
-                .setColor("Red")
-                .setTitle("❌ Invalid Command Format !")
-                .setDescription("You must mention at least one role or user to schedule a meeting");
+                .setTitle("Invalid date & time format !")
+                .setDescription("Please use 'dd-mm-yyyy HH:MM', 'dd/mm/yyyy HH:MM', 'in X [unit]' or 'in X [unit]s' format.")
+                .setColor("Red");
 
             return await message.reply({ embeds: [embed] });
         }
 
-        if (match) {
-            const title = match[1];
-            const date = match[2];
-            const time = match[3];
-            const role = match[4].split(/\s+/);// i don't need this actually
-            const description = match[5] || null;
-            const meetLink = match[6] || null;
 
-            const timezone = "America/New_York";
-            const dateTime = parseDateTime(date, time, timezone);
-
-            if (isNaN(dateTime.getTime())) {
-                return message.reply(
-                    {
-                        embeds: [
-                            new EmbedBuilder()
-                                .setColor("Red")
-                                .setTitle("❌ Invalid Date/Time Format ! ")
-                                .setDescription("Please use YYYY-MM-DD HH:mm format.")
-                        ]
-                    }
-                );
-            }
-            console.log(message.mentions.roles.map(role => role.name));
-
-            let mentionedRoles: any = message.mentions.roles.map((role) =>
-                role.toString()
-            );
-            const mentionedUsers = message.mentions.users.map(user => user.tag);
-
-            /* if (mentionedRoles.length === 0) {
-                 mentionedRoles = role;
-             }*/
-
-            const scheduleData = {
-                title,
-                dateTime,
-                roleIds: message.mentions.roles.map((role) => role.id),
-                rolename: mentionedRoles,
-                username: mentionedUsers,
-                description,
-                meetLink,
-            };
-
-            insertReminder(scheduleData, message);
-            return;
-        } else {
-            return message.reply(
-                {
-                    embeds: [
-                        new EmbedBuilder()
-                            .setColor(0xff0000)
-                            .setTitle("❌ Invalid Command Format")
-                            .setDescription("Your command format seems to be incorrect. Please check the following:\n" +
-                                "- Is the meeting title enclosed in double quotes?\n" +
-                                "- Is the date in YYYY-MM-DD format?\n" +
-                                "- Is the time in HH:MM format?\n" +
-                                "- Did you mention at least one role or participant correctly?\n\n" +
-                                "use this format: `!schedule \"Title of the Meeting\" YYYY-MM-DD HH:MM @Role [Optional: Description] [Optional: Google Meet Link]\`")
-                    ]
-                }
-            );
-        }
+        return await saveEvent({
+            userId: message.author.id,
+            title,
+            datetime,
+            description: description || null,
+            leadTimeMs: leadTimeMs || 10 * 60 * 1000,
+            meetLink: meetLink || null,
+            roles: removeDuplicates(message.mentions.roles.map(role => role)),
+            users: removeDuplicates(message.mentions.users.map(user => user).concat(message.author))
+        }, message);
     },
 });
 
-async function insertReminder(
-    scheduleData: {
+async function saveEvent(
+    event: {
+        userId: string;
         title: string;
-        dateTime: Date;
-        roleIds: string[];
-        rolename: string[] | string;
-        username: string[] | string;
+        datetime: Date;
         description: string | null;
+        leadTimeMs: number | null;
         meetLink: string | null;
+        roles: Role[];
+        users: User[];
     },
     message: Message
 ) {
-    const { title, dateTime, rolename, username, description, meetLink } = scheduleData;
+    const reply = await message.reply("Scheduling your event...");
 
     try {
-        const newEvent = new Event({
-            userId: message.author.id,
-            title,
-            datetime: dateTime,
-            description,
-            leadTimeMs: 10 * 60 * 1000,
-            channelId: message.channel.id,
-            meetLink,
+        const calendarEvent = await googleCalendar.createEvent({
+            summary: event.title,
+            description: event.description,
+            start: {
+                dateTime: event.datetime.toISOString(),
+                timeZone: 'GMT'
+            },
+            end: {
+                dateTime: new Date(event.datetime.getTime() + 60 * 60 * 1000).toISOString(),
+                timeZone: 'GMT'
+            },
+            location: event.meetLink
+        })
+
+        const newEvent = new EventModal({
+            title: event.title,
+            datetime: event.datetime,
+            description: event.description,
+            meetLink: event.meetLink,
+            leadTimeMs: event.leadTimeMs,
+            userId: event.userId,
+            roles: event.roles.map(role => role.id),
+            users: event.users.map(user => user.id),
+            calendarEventId: calendarEvent.id
         });
 
         const res = await newEvent.save();
-        reminderHandler.handle(res);
+
         const embed = new EmbedBuilder()
-            .setColor(0x00ff00)
             .setTitle("✅ Meeting Scheduled Successfully!")
             .addFields(
-                { name: "📌 Title", value: title },
+                { name: "📌 Title", value: event.title },
                 {
                     name: "🗓 Date & Time",
-                    value: dateTime.toLocaleString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                    }),
+                    value: event.datetime.toString(),
                 },
-                {
-                    name: "🏷️ Roles", value: Array.isArray(rolename) && rolename.length > 0
-                        ? rolename.join(", ") : "None"
-                },
-                {
-                    name: "👥 Participants",
-                    value: Array.isArray(username) && username.length > 0
-                        ? username.join(", ")
-                        : "None"
-                }
-                // { name: "👥 Users", value: Array.isArray(username) ? username.join(", ") : username }
-            );
+                { name: "🆔 ID", value: (res._id as ObjectId).toString() },
+            )
+            .setColor("Green");
 
+        if (event.description)
+            embed.addFields({ name: "📝 Description", value: event.description });
 
+        if (event.meetLink)
+            embed.addFields({ name: "🔗 Google Meet Link", value: event.meetLink });
 
+        if (event.roles.length || event.users.length) {
+            let mentions = "";
 
-        // this is the previous without the embdes
+            if (event.roles.length) {
+                mentions += event.roles.map(role => `<@&${role.id}>`).join(" ");
+            }
 
-        /*  let confirmationMessage = `
-      🎉 **Meeting Scheduled Successfully!**
-      **Title:** ${title}
-      **Date & Time:** ${dateTime.toLocaleString("en-US", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-          })}
-      **Role:** ${Array.isArray(rolename) ? rolename.join(", ") : rolename}
-      `; */
+            if (event.users.length) {
+                mentions += event.users.map(user => `<@${user.id}>`).join(" ");
+            }
 
-
-
-        if (description) {
-            embed.addFields({ name: "📝 Description", value: description });
+            embed.addFields({ name: "👥 Participants", value: mentions });
         }
 
-        if (meetLink) {
-            embed.addFields({ name: "🔗 Google Meet Link", value: meetLink });
-        }
+        await reply.edit({ embeds: [embed] });
 
-        return message.reply({ embeds: [embed] });
+        reminderHandler.handle(res);
     } catch (error) {
-        console.error("Error saving reminder:", error);
-        return message.reply(
-            "There was an error scheduling your meeting. Please try again later."
-        );
+        console.error("Error saving event:", error);
+
+        const embed = new EmbedBuilder()
+            .setTitle("Error Scheduling Event")
+            .setDescription("There was an error scheduling your event. Please contact staff. ```" + error + "```")
+            .setColor("Red");
+
+        await reply.edit({ embeds: [embed] });
     }
 }

@@ -17,6 +17,8 @@ const EventSchema = new mongoose.Schema({
     description: String,
     channelId: String,
     meetLink: String,
+    roles: [String],
+    users: [String],
 });
 
 export type IEvent = Document & InferSchemaType<typeof EventSchema>;
