@@ -16,15 +16,15 @@ export default class Bot {
 
     constructor(public readonly client: Client) {
         this.client.login(config.TOKEN);
-
+        
         this.client.on('warn', console.log);
         this.client.on('error', console.error);
-
+        
         this.client.once("ready", async () => {
             console.log(`Logged in as ${client.user?.tag} !`);
-
-            await connectToDatabase();
+            
             await Promise.all([
+                connectToDatabase(),
                 this.importEvents(),
                 this.importSlashCommands(),
                 this.importMessageCommands(),
@@ -34,63 +34,55 @@ export default class Bot {
         });
     }
 
-    async importEvents() {
+    private async importEvents() {
         const eventsDir = path.join(__dirname, '../events');
-
-        const eventFiles = await fs.readdir(eventsDir);
-        eventFiles.filter(file => file.endsWith('.ts'));
-
-        for (const file of eventFiles) {
+        const eventFiles = (await fs.readdir(eventsDir)).filter(file => file.endsWith('.ts'));
+    
+        await Promise.all(eventFiles.map(async (file) => {
             const filePath = path.join(eventsDir, file);
             const event = await import(filePath);
-
             const currentEvent = event.default as Event;
-
+    
             this.events.set(currentEvent.name, currentEvent);
-
+    
             if (currentEvent.once)
                 this.client.once(currentEvent.name, currentEvent.execute);
             else
                 this.client.on(currentEvent.name, currentEvent.execute);
-        }
+        }));
     }
-
-    async importSlashCommands() {
+    
+    private async importSlashCommands() {
         const commandsDir = path.join(__dirname, '../commands/slash');
-
-        const commandFiles = await fs.readdir(commandsDir);
-        commandFiles.filter(file => file.endsWith('.ts'));
-
-        for (const file of commandFiles) {
+        const commandFiles = (await fs.readdir(commandsDir)).filter(file => file.endsWith('.ts'));
+    
+        await Promise.all(commandFiles.map(async (file) => {
             const filePath = path.join(commandsDir, file);
             const command = await import(filePath);
             const currentCommand = command.default as SlashCommand;
-
+    
             this.slashCommands.set(currentCommand.data.name, currentCommand);
             console.log(`Loaded slash command: ${currentCommand.data.name}`);
-
-            const commandData = currentCommand.data.toJSON();
-            this.slashCommandsArray.push(commandData);
-        }
+    
+            this.slashCommandsArray.push(currentCommand.data.toJSON());
+        }));
     }
-
-    async importMessageCommands() {
+    
+    private async importMessageCommands() {
         const commandsDir = path.join(__dirname, '../commands/message');
-
-        const commandFiles = await fs.readdir(commandsDir);
-        commandFiles.filter(file => file.endsWith('.ts'));
-
-        for (const file of commandFiles) {
+        const commandFiles = (await fs.readdir(commandsDir)).filter(file => file.endsWith('.ts'));
+    
+        await Promise.all(commandFiles.map(async (file) => {
             const filePath = path.join(commandsDir, file);
             const command = await import(filePath);
             const currentCommand = command.default as MessageCommand;
-
+    
             this.messageCommands.set(currentCommand.name, currentCommand);
             console.log(`Loaded message command: ${currentCommand.name}`);
-        }
+        }));
     }
 
-    async registerCommands() {
+    private async registerCommands() {
         const rest = new REST({ version: '10' }).setToken(config.TOKEN);
 
         try {
