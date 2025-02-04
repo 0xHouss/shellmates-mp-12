@@ -1,12 +1,12 @@
 import { Client, Collection, REST, RESTPostAPIApplicationCommandsJSONBody, Routes } from 'discord.js';
 import fs from 'fs/promises';
 import path from 'path';
+import { reminderHandler } from '..';
 import Event from '../templates/Event';
 import MessageCommand from '../templates/MessageCommand';
 import SlashCommand from '../templates/SlashCommand';
 import config from './config';
 import { connectToDatabase } from './db';
-import { reminderHandler } from '..';
 
 export default class Bot {
     public slashCommands = new Collection<string, SlashCommand>();
@@ -24,15 +24,17 @@ export default class Bot {
             console.log(`Logged in as ${client.user?.tag} !`);
 
             await connectToDatabase();
-            await this.importEvents();
-            await this.importSlashCommands();
-            await this.importMessageCommands();
+            await Promise.all([
+                this.importEvents(),
+                this.importSlashCommands(),
+                this.importMessageCommands(),
+            ])
             await this.registerCommands();
             reminderHandler.initReminders();
         });
     }
 
-    private async importEvents() {
+    async importEvents() {
         const eventsDir = path.join(__dirname, '../events');
 
         const eventFiles = await fs.readdir(eventsDir);
@@ -53,7 +55,7 @@ export default class Bot {
         }
     }
 
-    private async importSlashCommands() {
+    async importSlashCommands() {
         const commandsDir = path.join(__dirname, '../commands/slash');
 
         const commandFiles = await fs.readdir(commandsDir);
@@ -72,7 +74,7 @@ export default class Bot {
         }
     }
 
-    private async importMessageCommands() {
+    async importMessageCommands() {
         const commandsDir = path.join(__dirname, '../commands/message');
 
         const commandFiles = await fs.readdir(commandsDir);
@@ -88,7 +90,7 @@ export default class Bot {
         }
     }
 
-    private async registerCommands() {
+    async registerCommands() {
         const rest = new REST({ version: '10' }).setToken(config.TOKEN);
 
         try {
