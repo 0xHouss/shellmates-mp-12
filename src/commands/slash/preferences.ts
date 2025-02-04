@@ -2,6 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from '
 import { isValidEmail } from '../../lib/utils';
 import UserModal from '../../schemas/user';
 import SlashCommand from '../../templates/SlashCommand';
+import { zones } from "tzdata";
 
 async function setPreferences(interaction: ChatInputCommandInteraction) {
     const timezone = interaction.options.getString('timezone');
@@ -16,20 +17,34 @@ async function setPreferences(interaction: ChatInputCommandInteraction) {
         return await interaction.reply({ embeds: [embed] });
     }
 
-    if (email && !isValidEmail(email)) {
-        const embed = new EmbedBuilder()
-            .setTitle('Invalid email !')
-            .setDescription('Please provide a valid email.')
-            .setColor('Red');
+    if (email) {
+        if (!isValidEmail(email)) {
+            const embed = new EmbedBuilder()
+                .setTitle('Invalid email !')
+                .setDescription('Please provide a valid email.')
+                .setColor('Red');
 
-        return await interaction.reply({ embeds: [embed] });
+            return await interaction.reply({ embeds: [embed] });
+        }
+
+        await UserModal.findOneAndUpdate({ userId: interaction.user.id }, { email }, { upsert: true })
     }
 
-    if (email)
-        await UserModal.findOneAndUpdate({ userId: interaction.user.id }, { email }, { upsert: true })
+    if (timezone) {
+        if (!(timezone in zones)) {
+            const embed = new EmbedBuilder()
+                .setTitle('Invalid timezone !')
+                .setDescription('Please provide a valid IANA timezone. You can find a list here: [List of tz database time zones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)')
+                .setColor('Red');
 
-    if (timezone)
+            return await interaction.reply({ 
+                embeds: [embed],
+                ephemeral: true 
+            });
+        }
+
         await UserModal.findOneAndUpdate({ userId: interaction.user.id }, { timezone }, { upsert: true })
+    }
 
     const embed = new EmbedBuilder()
         .setTitle('Your preferences have been set !')
