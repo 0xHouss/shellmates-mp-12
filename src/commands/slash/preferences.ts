@@ -13,7 +13,7 @@ async function setPreferences(interaction: ChatInputCommandInteraction) {
             .setDescription('Please provide at least one preference to set.')
             .setColor('Red');
 
-        return await interaction.reply({ embeds: [embed] });
+        return interaction.reply({ embeds: [embed] });
     }
 
     if (email) {
@@ -23,7 +23,7 @@ async function setPreferences(interaction: ChatInputCommandInteraction) {
                 .setDescription('Please provide a valid email.')
                 .setColor('Red');
 
-            return await interaction.reply({ embeds: [embed] });
+            return interaction.reply({ embeds: [embed] });
         }
 
         await UserModal.findOneAndUpdate({ userId: interaction.user.id }, { email }, { upsert: true })
@@ -36,7 +36,7 @@ async function setPreferences(interaction: ChatInputCommandInteraction) {
                 .setDescription('Please provide a valid IANA timezone. You can find a list here: [List of tz database time zones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)')
                 .setColor('Red');
 
-            return await interaction.reply({
+            return interaction.reply({
                 embeds: [embed],
                 ephemeral: true
             });
@@ -56,7 +56,7 @@ async function listPreferences(interaction: ChatInputCommandInteraction) {
     const user = await UserModal.findOne({ userId: interaction.user.id });
 
     if (!user)
-        return await interaction.reply(`No preferences found.`);
+        return interaction.reply(`No preferences found.`);
 
     const embed = new EmbedBuilder()
         .setTitle('Preferences')

@@ -23,7 +23,7 @@ export default new SlashCommand({
                 .setDescription("The provided ID is not a valid event id.")
                 .setColor("Red");
 
-            return await interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
         try {
@@ -35,11 +35,14 @@ export default new SlashCommand({
                     .setDescription("No event was found with the provided ID.")
                     .setColor("Red");
 
-                return await interaction.reply({ embeds: [embed], ephemeral: true });
+                return interaction.reply({ embeds: [embed], ephemeral: true });
             }
 
-            // Remove event from google calendar
-            await googleCalendar.removeEvent(canceledEvent.calendarEventId);
+            try {
+                await googleCalendar.removeEvent(canceledEvent.calendarEventId);
+            } catch (error) {
+                console.error("Error removing event from Google Calendar:", error);
+            }
 
             const embed = new EmbedBuilder()
                 .setTitle("Event canceled !")

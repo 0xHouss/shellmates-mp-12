@@ -5,7 +5,6 @@ import { zones as timezones } from 'tzdata';
 import { googleCalendar, reminderHandler } from '..';
 import EventModal from '../schemas/event';
 import UserModal from '../schemas/user';
-import { time } from 'console';
 
 Settings.defaultZone = "Africa/Algiers";
 
@@ -42,6 +41,7 @@ export const unitMap: Record<string, string> = {
     y: 'years',
 };
 
+// Parse a datetime from a string input like "2022-12-31 23:59", "2022/12/31 23:59", "in 5 minutes", "5 mins", "5m", etc.
 export function parseDateTime(input: string, timezone?: Timezone) {
     const now = DateTime.local({ zone: timezone });
 
@@ -83,6 +83,7 @@ export function parseDateTime(input: string, timezone?: Timezone) {
     }
 }
 
+// Parse the lead time in milliseconds from a string input like "5 minutes", "1 hour", etc.
 export function parseLeadTime(input: string) {
     const relativeTimeRegex = /(\d+)\s*(second|minute|hour|day|week|month|year|sec|min|s|m|h|d|w|mo|y)s?/i;
 
@@ -124,8 +125,6 @@ export async function getAttendeesEmails(roles?: Role[], users?: User[]) {
 
         if (user?.email) attendeesEmails.push({ email: user.email });
     }
-
-    console.log(attendeesEmails);
 
     return attendeesEmails;
 }

@@ -3,11 +3,46 @@ import config from '../../lib/config';
 import SlashCommand from '../../templates/SlashCommand';
 
 const commands = [
-    { name: 'Schedule', id: 'schedule', emoji: '📅', description: 'Schedule a new event', syntax: `${config.BOT_PREFIX}schedule title! datetime! description? leadtime? meet? channel? mentions?`, details: 'Sets up a **new event** with required and optional parameters.' },
-    { name: 'Preferences', id: 'preferences', emoji: '⚙️', description: 'Configure your preferences', syntax: '/preferences timezone? email?', details: 'Adjust **personal settings** such as **timezone** and **email** for notifications.' },
-    { name: 'Calendar', id: 'calendar', emoji: '🗓️', description: 'Display upcoming meetings', syntax: '/calendar', details: 'Shows upcoming **events**.' },
-    { name: 'Cancel', id: 'cancel', emoji: '❌', description: 'Cancel an upcoming meeting', syntax: '/cancel id!', details: 'Cancels an **event** using its **unique ID**.' },
-    { name: 'Help', id: 'help', emoji: '❓', description: 'Display the help menu', syntax: '/help', details: 'Shows **information** about all available **commands**.' }
+    {
+        name: 'Schedule',
+        id: 'schedule',
+        emoji: '📅',
+        description: 'Schedule a new event',
+        syntax: `${config.BOT_PREFIX}schedule title! datetime! description? leadtime? meet? channel? mentions?`,
+        details: 'Sets up a **new event** with required and optional parameters.'
+    },
+    {
+        name: 'Preferences',
+        id: 'preferences',
+        emoji: '⚙️',
+        description: 'Configure your preferences',
+        syntax: '/preferences timezone? email?',
+        details: 'Adjust **personal settings** such as **timezone** and **email** for notifications.'
+    },
+    {
+        name: 'Calendar',
+        id: 'calendar',
+        emoji: '🗓️',
+        description: 'Display upcoming meetings',
+        syntax: '/calendar',
+        details: 'Shows upcoming **events**.'
+    },
+    {
+        name: 'Cancel',
+        id: 'cancel',
+        emoji: '❌',
+        description: 'Cancel an upcoming meeting',
+        syntax: '/cancel id!',
+        details: 'Cancels an **event** using its **unique ID**.'
+    },
+    {
+        name: 'Help',
+        id: 'help',
+        emoji: '❓',
+        description: 'Display the help menu',
+        syntax: '/help',
+        details: 'Shows **information** about all available **commands**.'
+    }
 ];
 
 export default new SlashCommand({

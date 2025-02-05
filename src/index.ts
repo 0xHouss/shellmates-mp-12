@@ -17,6 +17,7 @@ export const bot = new Bot(
 export const reminderHandler = new ReminderHandler();
 export const googleCalendar = new GoogleCalendar();
 
+// Close the database connection when the process is terminated
 process.on('SIGINT', async () => {
     await closeDatabaseConnection();
     process.exit(0);

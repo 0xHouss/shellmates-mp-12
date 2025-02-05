@@ -1,3 +1,4 @@
+// Abstract class for creating commands.
 export default abstract class BaseCommand {
     name: string
     description: string

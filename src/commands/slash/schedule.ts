@@ -43,6 +43,10 @@ export default new SlashCommand({
 
             const title = interaction.options.getString('title')!;
             const datetimeStr = interaction.options.getString('datetime')!;
+            const description = interaction.options.getString('description') || undefined;
+            const channel = interaction.options.getChannel('channel');
+            const meetLink = interaction.options.getString('meet') || undefined;
+            const leadtimeStr = interaction.options.getString('leadtime');
 
             const user = await UserModal.findOne({ userId: interaction.user.id });
             const timezone = user?.timezone || undefined
@@ -55,16 +59,13 @@ export default new SlashCommand({
                     .setDescription("Please use 'dd-mm-yyyy HH:MM', 'dd/mm/yyyy HH:MM', 'in X [unit]' or 'in X [unit]s' format.")
                     .setColor("Red");
 
-                return await interaction.reply({ embeds: [embed], ephemeral: true });
+                return interaction.reply({ embeds: [embed], ephemeral: true });
             }
-            const description = interaction.options.getString('description') || undefined;
-            const channel = interaction.options.getChannel('channel');
-            const meetLink = interaction.options.getString('meet') || undefined;
-            const leadTime = interaction.options.getString('leadtime');
+
             let leadTimeMs: number | undefined;
 
-            if (leadTime) {
-                leadTimeMs = parseLeadTime(leadTime);
+            if (leadtimeStr) {
+                leadTimeMs = parseLeadTime(leadtimeStr);
 
                 if (!leadTimeMs) {
                     const embed = new EmbedBuilder()
@@ -72,7 +73,7 @@ export default new SlashCommand({
                         .setDescription("Please use 'X [unit]', 'X [unit]s' format.")
                         .setColor("Red");
 
-                    return await interaction.reply({ embeds: [embed], ephemeral: true });
+                    return interaction.reply({ embeds: [embed], ephemeral: true });
                 }
             }
 
@@ -110,7 +111,7 @@ export default new SlashCommand({
                 .setDescription("There was an error scheduling your event. Please contact staff. ```" + error + "```")
                 .setColor("Red");
 
-            return await interaction.reply({ embeds: [embed], ephemeral: true });
+            return interaction.reply({ embeds: [embed], ephemeral: true });
         }
     }
 })

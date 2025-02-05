@@ -12,11 +12,11 @@ export class GoogleCalendar {
             'urn:ietf:wg:oauth:2.0:oob'
         );
 
-        this.loadToken();
+        this.loadCredentials();
     }
 
-    // Load the token and refresh it if necessary
-    private loadToken() {
+    // Load the google credentials and refresh them if necessary
+    private loadCredentials() {
         const creds = JSON.parse(fs.readFileSync('google-credentials.json', 'utf8'));
         this.oauth2Client.setCredentials(creds);
 
@@ -36,7 +36,7 @@ export class GoogleCalendar {
     }
 
     async createEvent(event: calendar_v3.Schema$Event) {
-        this.loadToken();
+        this.loadCredentials();
 
         const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
 
@@ -49,7 +49,7 @@ export class GoogleCalendar {
     }
 
     async removeEvent(eventId: string) {
-        this.loadToken();
+        this.loadCredentials();
 
         const calendar = google.calendar({ version: 'v3', auth: this.oauth2Client });
 

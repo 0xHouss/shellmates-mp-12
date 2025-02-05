@@ -1,3 +1,4 @@
+// Template for creating event handlers.
 export default class Event {
     name: string
     once: boolean

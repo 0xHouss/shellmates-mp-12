@@ -23,6 +23,7 @@ export default class Bot {
         this.client.once("ready", async () => {
             console.log(`Logged in as ${client.user?.tag} !`);
 
+            // Import all events, slash commands and message commands
             await Promise.all([
                 connectToDatabase(),
                 this.importEvents(),
@@ -30,6 +31,8 @@ export default class Bot {
                 this.importMessageCommands(),
             ])
             await this.registerCommands(),
+
+            // Initialize reminders
             reminderHandler.initReminders();
         });
     }
