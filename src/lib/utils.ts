@@ -41,27 +41,27 @@ export const unitMap: Record<string, string> = {
     y: 'years',
 };
 
-// Parse a datetime from a string input like "2022-12-31 23:59", "2022/12/31 23:59", "in 5 minutes", "5 mins", "5m", etc.
+// Parse a datetime from a string input like "31-12-2025 23:59", "31/12/2025 23:59", "in 5 minutes", "5 mins", "5m", etc.
 export function parseDateTime(input: string, timezone?: Timezone) {
     const now = DateTime.local({ zone: timezone });
 
-    // Handle absolute time in "yyyy-mm-dd HH:MM" or "yyyy/mm/dd HH:MM" format
-    const absoluteTimeRegex = /^(\d{4})[-\/]?(\d{2})[-\/]?(\d{2})\s+(\d{2}):(\d{2})$/;
+    // Handle absolute time in "dd-mm-yyyy HH:MM" or "dd/mm/yyyy HH:MM" format
+    const absoluteTimeRegex = /^(\d{2})[-\/]?(\d{2})[-\/]?(\d{3})\s+(\d{2}):(\d{2})$/;
     const absoluteMatch = input.match(absoluteTimeRegex);
 
     if (absoluteMatch) {
-        const year = parseInt(absoluteMatch[1], 10);
+        const day = parseInt(absoluteMatch[1], 10);
         const month = parseInt(absoluteMatch[2], 10);
-        const day = parseInt(absoluteMatch[3], 10);
-        const hours = parseInt(absoluteMatch[4], 10);
-        const minutes = parseInt(absoluteMatch[5], 10);
+        const year = parseInt(absoluteMatch[3], 10);
+        const hour = parseInt(absoluteMatch[4], 10);
+        const minute = parseInt(absoluteMatch[5], 10);
 
         const date = DateTime.fromObject({
-            year,
-            month,
             day,
-            hour: hours,
-            minute: minutes,
+            month,
+            year,
+            hour,
+            minute,
         }, { zone: timezone });
 
         if (date.isValid && date > now)
