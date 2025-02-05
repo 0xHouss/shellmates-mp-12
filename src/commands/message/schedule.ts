@@ -1,18 +1,15 @@
-import { Channel, EmbedBuilder, Message, Role, User } from "discord.js";
-import { ObjectId } from "mongoose";
-import { googleCalendar, reminderHandler } from "../..";
+import { EmbedBuilder, Message } from "discord.js";
 import config from "../../lib/config";
-import { removeDuplicates } from "../../lib/utils";
-import EventModal from "../../schemas/event";
+import { parseDateTime, parseLeadTime, removeDuplicates, saveEvent } from "../../lib/utils";
 import UserModal from "../../schemas/user";
 import MessageCommand from "../../templates/MessageCommand";
-import { parseDatetime, parseLeadTime } from "../slash/schedule";
 
 export default new MessageCommand({
     name: "schedule",
     description: "Schedule a new meeting",
     async execute(message: Message, args: string[]) {
-        if (!message.guildId) return;
+        try {
+            if (!message.guildId) return;
 
         if (!args.length) {
             const embed = new EmbedBuilder()
@@ -42,8 +39,8 @@ export default new MessageCommand({
 
         const user = await UserModal.findOne({ userId: message.author.id });
 
-        const timezone = user?.timezone;
-        const datetime = parseDatetime(datetimeStr);
+        const timezone = user?.timezone || undefined;
+        const datetime = parseDateTime(datetimeStr);
         const leadTimeMs = parseLeadTime(leadtimeStr);
 
         if (!datetime) {
@@ -55,116 +52,42 @@ export default new MessageCommand({
             return await message.reply({ embeds: [embed] });
         }
 
-        return await saveEvent({
-            userId: message.author.id,
-            guildId: message.guildId,
-            title,
-            datetime,
-            description: description || null,
-            leadTimeMs: leadTimeMs || 10 * 60 * 1000,
-            meetLink: meetLink || null,
-            roles: removeDuplicates(message.mentions.roles.map(role => role)),
-            users: removeDuplicates(message.mentions.users.map(user => user).concat(message.author)),
-            channel: message.mentions.channels.first()
-        }, message);
-    },
-});
+        const reply = await message.reply({ embeds: [new EmbedBuilder().setTitle("Scheduling Event...").setColor("Yellow")] });
 
-async function saveEvent(
-    event: {
-        userId: string;
-        guildId: string;
-        title: string;
-        datetime: Date;
-        description: string | null;
-        leadTimeMs: number | null;
-        meetLink: string | null;
-        roles: Role[];
-        users: User[];
-        channel?: Channel;
-    },
-    message: Message
-) {
-    const reply = await message.reply("Scheduling your event...");
+        try {
+            const embed = await saveEvent({
+                userId: message.author.id,
+                guildId: message.guildId,
+                title,
+                datetime,
+                timezone,
+                description: description,
+                leadTimeMs: leadTimeMs || 10 * 60 * 1000,
+                meetLink,
+                roles: removeDuplicates(message.mentions.roles.map(role => role)),
+                users: removeDuplicates(message.mentions.users.map(user => user).concat(message.author)),
+                channelId: message.mentions.channels.first()?.id
+            });
+            await reply.edit({ embeds: [embed] });
+        } catch (error) {
+            console.error("Error saving event:", error);
 
-    try {
-        const calendarEvent = await googleCalendar.createEvent({
-            summary: event.title,
-            description: event.description,
-            start: {
-                dateTime: event.datetime.toISOString(),
-                timeZone: 'GMT'
-            },
-            end: {
-                dateTime: new Date(event.datetime.getTime() + 60 * 60 * 1000).toISOString(),
-                timeZone: 'GMT'
-            },
-            location: event.meetLink
-        })
+            const embed = new EmbedBuilder()
+                .setTitle("Error Scheduling Event")
+                .setDescription("There was an error scheduling your event. Please contact staff. ```" + error + "```")
+                .setColor("Red");
 
-        const newEvent = new EventModal({
-            userId: event.userId,
-            guildId: event.guildId,
-            title: event.title,
-            channelId: event.channel?.id,
-            datetime: event.datetime,
-            description: event.description,
-            meetLink: event.meetLink,
-            leadTimeMs: event.leadTimeMs,
-            roles: event.roles.map(role => role.id),
-            users: event.users.map(user => user.id),
-            calendarEventId: calendarEvent.id
-        });
-
-        const res = await newEvent.save();
-
-        const embed = new EmbedBuilder()
-            .setTitle("✅ Meeting Scheduled Successfully!")
-            .addFields(
-                { name: "📌 Title", value: event.title },
-                {
-                    name: "🗓 Date & Time",
-                    value: event.datetime.toString(),
-                },
-                { name: "🆔 ID", value: (res._id as ObjectId).toString() },
-            )
-            .setColor("Green");
-
-        if (event.description)
-            embed.addFields({ name: "📝 Description", value: event.description });
-
-        if (event.meetLink)
-            embed.addFields({ name: "🔗 Google Meet Link", value: event.meetLink });
-
-        if (event.channel) {
-            embed.addFields({ name: "📡 Channel", value: `<#${event.channel.id}>` });
+            await reply.edit({ embeds: [embed] });
         }
-
-        if (event.roles.length || event.users.length) {
-            const mentions: string[] = [];
-
-            if (event.roles.length) {
-                mentions.push(...event.roles.map(role => `<@&${role.id}>`));
-            }
-
-            if (event.users.length) {
-                mentions.push(...event.users.map(user => `<@${user.id}>`));
-            }
-
-            embed.addFields({ name: "👥 Participants", value: mentions.join(", ") });
-        }
-
-        await reply.edit({ embeds: [embed] });
-
-        reminderHandler.handle(res);
     } catch (error) {
-        console.error("Error saving event:", error);
+        console.error("Error scheduling event:", error);
 
         const embed = new EmbedBuilder()
             .setTitle("Error Scheduling Event")
             .setDescription("There was an error scheduling your event. Please contact staff. ```" + error + "```")
             .setColor("Red");
 
-        await reply.edit({ embeds: [embed] });
+        return await message.reply({ embeds: [embed] });
     }
-}
+    },
+});

@@ -1,6 +1,8 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import EventModal from '../../schemas/event';
 import SlashCommand from '../../templates/SlashCommand';
+import UserModal from '../../schemas/user';
+import { formatDateTime } from '../../lib/utils';
 
 export default new SlashCommand({
     data: new SlashCommandBuilder()
@@ -24,6 +26,9 @@ export default new SlashCommand({
             await interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
+        const user = await UserModal.findOne({ userId: interaction.user.id });
+        const timezone = user?.timezone || undefined;
+
         const embed = new EmbedBuilder()
             .setTitle('Upcoming Events')
             .setColor('Green');
@@ -31,7 +36,7 @@ export default new SlashCommand({
         events.forEach(event => embed.addFields(
             {
                 name: `**📌 ${event.title}**`,
-                value: `📅 ${event.datetime.toUTCString()}\n🆔 ${event._id}\n${event.description || 'No description'}`,
+                value: `${event.description || 'No description'}\n\n📅 ${formatDateTime(event.datetime, timezone)}\n🆔 \`${event._id}\``,
                 inline: false
             }));
 

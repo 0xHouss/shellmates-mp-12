@@ -1,8 +1,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import { isValidEmail } from '../../lib/utils';
+import { isValidEmail, isValidTimezone } from '../../lib/utils';
 import UserModal from '../../schemas/user';
 import SlashCommand from '../../templates/SlashCommand';
-import { zones } from "tzdata";
 
 async function setPreferences(interaction: ChatInputCommandInteraction) {
     const timezone = interaction.options.getString('timezone');
@@ -31,15 +30,15 @@ async function setPreferences(interaction: ChatInputCommandInteraction) {
     }
 
     if (timezone) {
-        if (!(timezone in zones)) {
+        if (!isValidTimezone(timezone)) {
             const embed = new EmbedBuilder()
                 .setTitle('Invalid timezone !')
                 .setDescription('Please provide a valid IANA timezone. You can find a list here: [List of tz database time zones](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)')
                 .setColor('Red');
 
-            return await interaction.reply({ 
+            return await interaction.reply({
                 embeds: [embed],
-                ephemeral: true 
+                ephemeral: true
             });
         }
 

@@ -20,7 +20,7 @@
     },
     "homepage": "https://github.com/OxHouss/shellmates-mp-12#README",
     "devDependencies": {
-        "@types/ms": "^0.7.34",
+        "@types/luxon": "^3.4.2",
         "@types/node": "^22.13.0",
         "nodemon": "^3.1.9",
         "rimraf": "^6.0.1",
@@ -31,7 +31,7 @@
         "discord.js": "^14.17.3",
         "dotenv": "^16.4.7",
         "googleapis": "^105.0.0",
-        "moment-timezone": "^0.5.47",
+        "luxon": "^3.5.0",
         "mongodb": "^6.13.0",
         "mongoose": "^8.9.6",
         "ms": "^2.1.3",
