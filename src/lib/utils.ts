@@ -45,26 +45,22 @@ export const unitMap: Record<string, string> = {
 export function parseDateTime(input: string, timezone?: Timezone) {
     const now = DateTime.local({ zone: timezone });
 
-    // Handle absolute time in "dd-mm-yyyy HH:MM" or "dd/mm/yyyy HH:MM" format
-    const absoluteTimeRegex = /^(\d{2})[-\/]?(\d{2})[-\/]?(\d{3})\s+(\d{2}):(\d{2})$/;
-    const absoluteMatch = input.match(absoluteTimeRegex);
+    // Handle absolute time in the following format
+    const formats = [
+        "dd-MM-yyyy HH:mm",
+        "d-M-yyyy HH:mm",
+        "dd/MM/yyyy HH:mm",
+        "d/M/yyyy HH:mm",
+        "dd-MM-yyyy H:mm",
+        "d-M-yyyy H:mm",
+        "dd/MM/yyyy H:mm",
+        "d/M/yyyy H:mm",
+    ];
 
-    if (absoluteMatch) {
-        const day = parseInt(absoluteMatch[1], 10);
-        const month = parseInt(absoluteMatch[2], 10);
-        const year = parseInt(absoluteMatch[3], 10);
-        const hour = parseInt(absoluteMatch[4], 10);
-        const minute = parseInt(absoluteMatch[5], 10);
+    for (const format of formats) {
+        const date = DateTime.fromFormat(input, format, { zone: timezone });
 
-        const date = DateTime.fromObject({
-            day,
-            month,
-            year,
-            hour,
-            minute,
-        }, { zone: timezone });
-
-        if (date.isValid && date > now)
+        if (date.isValid && date.toMillis() > now.toMillis())
             return date.toJSDate();
     }
 
