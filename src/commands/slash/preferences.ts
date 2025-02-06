@@ -13,7 +13,7 @@ async function setPreferences(interaction: ChatInputCommandInteraction) {
             .setDescription('Please provide at least one preference to set.')
             .setColor('Red');
 
-        return interaction.reply({ embeds: [embed] });
+        return interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
     if (email) {
@@ -23,7 +23,7 @@ async function setPreferences(interaction: ChatInputCommandInteraction) {
                 .setDescription('Please provide a valid email.')
                 .setColor('Red');
 
-            return interaction.reply({ embeds: [embed] });
+            return interaction.reply({ embeds: [embed], ephemeral: true });
         }
 
         await UserModal.findOneAndUpdate({ userId: interaction.user.id }, { email }, { upsert: true })
@@ -49,7 +49,7 @@ async function setPreferences(interaction: ChatInputCommandInteraction) {
         .setTitle('Your preferences have been set !')
         .setColor('Green');
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed], ephemeral: true });
 }
 
 async function listPreferences(interaction: ChatInputCommandInteraction) {
@@ -66,7 +66,7 @@ async function listPreferences(interaction: ChatInputCommandInteraction) {
         )
         .setColor('Blue');
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed], ephemeral: true });
 }
 
 export default new SlashCommand({
