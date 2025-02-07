@@ -20,7 +20,9 @@ export default new Event({
             // Remove quotes from quoted arguments
             const args = matches.map(arg => arg.replace(/^"(.*)"$/, '$1'));
 
-            const commandName = args.shift()!.toLowerCase()
+            const commandName = args.shift()?.toLowerCase()
+
+            if (!commandName) return
 
             const command = bot.messageCommands.get(commandName)
 

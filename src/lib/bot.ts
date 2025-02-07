@@ -1,5 +1,5 @@
 import { Client, Collection, REST, RESTPostAPIApplicationCommandsJSONBody, Routes } from 'discord.js';
-import fs from 'fs/promises';
+import { readdirSync } from 'fs';
 import path from 'path';
 import { reminderHandler } from '..';
 import Event from '../templates/Event';
@@ -30,7 +30,8 @@ export default class Bot {
                 this.importSlashCommands(),
                 this.importMessageCommands(),
             ])
-            await this.registerCommands(),
+
+            await this.registerCommands();
 
             // Initialize reminders
             reminderHandler.initReminders();
@@ -40,13 +41,12 @@ export default class Bot {
     private async importEvents() {
         const eventsDir = path.join(__dirname, '../events');
 
-        const eventFiles = await fs.readdir(eventsDir);
+        const eventFiles = readdirSync(eventsDir);
         eventFiles.filter(file => file.endsWith('.ts'));
 
         await Promise.all(eventFiles.map(async file => {
             const filePath = path.join(eventsDir, file);
             const event = await import(filePath);
-
             const currentEvent = event.default as Event;
 
             this.events.set(currentEvent.name, currentEvent);
@@ -61,7 +61,7 @@ export default class Bot {
     private async importSlashCommands() {
         const commandsDir = path.join(__dirname, '../commands/slash');
 
-        const commandFiles = await fs.readdir(commandsDir);
+        const commandFiles = readdirSync(commandsDir);
         commandFiles.filter(file => file.endsWith('.ts'));
 
         await Promise.all(commandFiles.map(async file => {
@@ -80,7 +80,7 @@ export default class Bot {
     private async importMessageCommands() {
         const commandsDir = path.join(__dirname, '../commands/message');
 
-        const commandFiles = await fs.readdir(commandsDir);
+        const commandFiles = readdirSync(commandsDir);
         commandFiles.filter(file => file.endsWith('.ts'));
 
         await Promise.all(commandFiles.map(async file => {
